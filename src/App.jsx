@@ -9,7 +9,7 @@ import Faq from "./pages/Faq.jsx";
 import Blog from "./pages/Blog.jsx";
 import Privacy from "./pages/Privacy.jsx";
 import Terms from "./pages/Terms.jsx";
-import { SignUp, Login, VerifyEmail, SuperAdminLogin } from "./pages/Auth.jsx";
+import { SignUp, Login, VerifyEmail, SuperAdminLogin, ForgotPassword } from "./pages/Auth.jsx";
 import ApplicantDashboard from "./pages/applicant/Dashboard.jsx";
 import NewClaimWizard from "./pages/applicant/NewClaim.jsx";
 import MyClaims from "./pages/applicant/MyClaims.jsx";
@@ -23,9 +23,10 @@ import SuperAdminClaims from "./pages/superadmin/Claims.jsx";
 import SuperAdminAdjusters from "./pages/superadmin/Adjusters.jsx";
 import SuperAdminPolicyholders from "./pages/superadmin/Policyholders.jsx";
 import ApiDocs from "./pages/ApiDocs.jsx";
+import Settings from "./pages/Settings.jsx";
 import { seedClaims, seedAdjusters, seedPolicyholders } from "./lib/data.js";
 import { NOW, fmtMoney, uid } from "./lib/helpers.js";
-import { PREMIUM_PRICE } from "./lib/constants.js";
+import { PREMIUM_PRICE, PREMIUM_TRIAL_DAYS, SUPERADMIN_CREDENTIALS } from "./lib/constants.js";
 import { SiteNavContext } from "./lib/SiteNav.jsx";
 
 export default function App() {
@@ -33,6 +34,8 @@ export default function App() {
   const [scrollTarget, setScrollTarget] = useState(null);
   const [pendingEmail, setPendingEmail] = useState("");
   const [pendingRole, setPendingRole] = useState("applicant");
+  const [signupRole, setSignupRole] = useState("applicant");
+  const [pendingSignup, setPendingSignup] = useState(null);
   const [role, setRole] = useState("applicant");
   const [plan, setPlan] = useState("free");
   const [claims, setClaims] = useState(seedClaims);
@@ -43,11 +46,13 @@ export default function App() {
   const [toasts, setToasts] = useState([]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [profile, setProfile] = useState({ avatarUrl: null, fullName: "", email: "", phone: "", policyId: "", plan: "", orgName: "", licenseNumber: "", notifyEmail: true, notifySms: false });
+  const updateProfile = (patch) => setProfile((prev) => ({ ...prev, ...patch }));
 
   useEffect(() => {
     if (screen === "landing" && scrollTarget) return;
     window.scrollTo(0, 0);
-  }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [screen]);
 
   const pushToast = (t) => {
     const id = Math.random().toString(36).slice(2);
@@ -55,9 +60,24 @@ export default function App() {
     setTimeout(() => setToasts((prev) => prev.filter((x) => x.id !== id)), 4200);
   };
 
-  const enterApp = (r = "applicant") => { setRole(r); setScreen("app"); setView(r === "superadmin" ? "sa-dashboard" : "dashboard"); };
+  const enterApp = (r = "applicant", identity = null) => {
+    setRole(r);
+    setScreen("app");
+    setView(r === "superadmin" ? "sa-dashboard" : "dashboard");
+    if (r === "superadmin") {
+      setProfile((prev) => ({ ...prev, fullName: "System Administrator", email: SUPERADMIN_CREDENTIALS.email }));
+    } else if (identity) {
+      setProfile((prev) => ({
+        ...prev,
+        fullName: identity.fullName || "",
+        email: identity.email || "",
+        policyId: identity.policyNumber || "",
+        orgName: identity.orgName || "",
+        licenseNumber: identity.licenseNumber || "",
+      }));
+    }
+  };
   const exitApp = () => { setScreen("landing"); setView("dashboard"); setSelected(null); };
-  const switchRole = () => { setRole((r) => (r === "admin" ? "applicant" : "admin")); setView("dashboard"); setSelected(null); };
   const openClaim = (id) => { setSelected(id); setView("detail"); };
 
   const addClaim = (claimObj, refToOpen) => {
@@ -89,13 +109,18 @@ export default function App() {
     pushToast({ type: status === "approved" ? "success" : "warn", title: `${id} marked ${status}`, body: "Applicant view updated in real time." });
   };
 
+  const startTrial = () => {
+    setPlan("trial");
+    pushToast({ type: "success", title: "Free trial started", body: `Your ${PREMIUM_TRIAL_DAYS}-day free trial is active. API keys and CSV export are now unlocked — cancel anytime.` });
+  };
   const upgradePlan = (cycle) => {
     setPlan("premium");
-    pushToast({ type: "success", title: "Upgraded to Premium", body: `Billed ${fmtMoney(PREMIUM_PRICE[cycle])} / ${cycle === "annual" ? "year" : "month"}. API keys and CSV export are now unlocked.` });
+    pushToast({ type: "success", title: "Subscription active", body: `Billed ${fmtMoney(PREMIUM_PRICE[cycle])} / ${cycle === "annual" ? "year" : "month"}. API keys and CSV export are now unlocked.` });
   };
   const downgradePlan = () => {
+    const wasTrial = plan === "trial";
     setPlan("free");
-    pushToast({ type: "warn", title: "Premium canceled", body: "You're back on the Standard plan — Premium features are now locked." });
+    pushToast({ type: "warn", title: wasTrial ? "Trial canceled" : "Subscription canceled", body: "You're back on the free plan — subscriber-only features are now locked." });
   };
 
   const toggleAdjusterStatus = (id) => {
@@ -137,7 +162,7 @@ export default function App() {
   const siteNav = {
     onNavAnchor: navAnchor,
     onDevelopers: () => setScreen("developers"),
-    onGetStarted: () => setScreen("signup"),
+    onGetStarted: () => { setSignupRole("applicant"); setScreen("signup"); },
     onLogin: () => setScreen("login"),
     onHome: () => { setScrollTarget(null); setScreen("landing"); },
     onFaq: () => setScreen("faq"),
@@ -145,11 +170,12 @@ export default function App() {
     onPrivacy: () => setScreen("privacy"),
     onTerms: () => setScreen("terms"),
   };
+  const goSignupAsAdjuster = () => { setSignupRole("admin"); setScreen("signup"); };
 
   if (screen === "landing") {
     return (
       <SiteNavContext.Provider value={siteNav}>
-        <Landing onGetStarted={siteNav.onGetStarted} onLogin={siteNav.onLogin} onExploreAdmin={() => enterApp("admin")} scrollTarget={scrollTarget} onScrolled={() => setScrollTarget(null)} />
+        <Landing onGetStarted={siteNav.onGetStarted} onGetStartedAdjuster={goSignupAsAdjuster} onLogin={siteNav.onLogin} scrollTarget={scrollTarget} onScrolled={() => setScrollTarget(null)} />
       </SiteNavContext.Provider>
     );
   }
@@ -168,17 +194,24 @@ export default function App() {
   if (screen === "terms") {
     return <SiteNavContext.Provider value={siteNav}><Terms /></SiteNavContext.Provider>;
   }
+  const handleGoogleAuth = () => {
+    pushToast({ type: "warn", title: "Google sign-in isn't connected yet", body: "This button is wired and ready — we'll enable it once Google OAuth is set up." });
+  };
+
   if (screen === "signup") {
-    return <SignUp onGoLogin={() => setScreen("login")} onSubmit={(form) => { setPendingEmail(form.email); setPendingRole(form.role); setScreen("verify"); }} />;
+    return <SignUp initialRole={signupRole} onGoLogin={() => setScreen("login")} onSubmit={(form) => { setPendingEmail(form.email); setPendingRole(form.role); setPendingSignup(form); setScreen("verify"); }} onGoogleAuth={handleGoogleAuth} />;
   }
   if (screen === "login") {
-    return <Login onGoSignup={() => setScreen("signup")} onSubmit={(form) => enterApp(form.role)} onGoSuperAdmin={() => setScreen("superadmin-login")} />;
+    return <Login onGoSignup={() => setScreen("signup")} onSubmit={(form) => enterApp(form.role, { email: form.email })} onGoSuperAdmin={() => setScreen("superadmin-login")} onForgotPassword={() => setScreen("forgot-password")} onGoogleAuth={handleGoogleAuth} />;
+  }
+  if (screen === "forgot-password") {
+    return <ForgotPassword onBack={() => setScreen("login")} onDone={() => setScreen("login")} />;
   }
   if (screen === "superadmin-login") {
     return <SuperAdminLogin onBack={() => setScreen("login")} onSubmit={() => enterApp("superadmin")} />;
   }
   if (screen === "verify") {
-    return <VerifyEmail email={pendingEmail} onBack={() => setScreen("signup")} onVerified={() => enterApp(pendingRole)} />;
+    return <VerifyEmail email={pendingEmail} onBack={() => setScreen("signup")} onVerified={() => enterApp(pendingRole, pendingSignup)} />;
   }
 
   const selectedClaim = claims.find((c) => c.id === selected);
@@ -194,28 +227,30 @@ export default function App() {
   if (view === "sa-claims") title = "All Claims";
   if (view === "sa-adjusters") title = "Adjusters";
   if (view === "sa-policyholders") title = "Policyholders";
+  if (view === "settings") title = "Settings";
   if (view === "detail" && selectedClaim) { title = selectedClaim.id; subtitle = selectedClaim.category; }
 
   return (
     <div className="min-h-screen flex bg-[#f5f6fa]">
-      <Sidebar role={role} plan={plan} active={view} onNav={(v) => { setView(v); setSelected(null); }} onRoleSwitch={switchRole} onExit={exitApp} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+      <Sidebar role={role} plan={plan} active={view} onNav={(v) => { setView(v); setSelected(null); }} onExit={exitApp} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
       <div className="flex-1 min-w-0 flex flex-col">
-        <Topbar title={title} subtitle={subtitle} role={role} plan={plan} onMenu={() => setMobileOpen(true)} notifCount={notifCount} onBell={() => setNotifOpen((o) => !o)} />
+        <Topbar title={title} subtitle={subtitle} role={role} plan={plan} onMenu={() => setMobileOpen(true)} notifCount={notifCount} onBell={() => setNotifOpen((o) => !o)} onSettings={() => setView("settings")} avatarUrl={profile.avatarUrl} profile={profile} />
         <main className="flex-1 p-4 sm:p-8">
-          {role === "applicant" && view === "dashboard" && <ApplicantDashboard claims={claims} onNav={setView} onOpenClaim={openClaim} />}
+          {role === "applicant" && view === "dashboard" && <ApplicantDashboard claims={claims} onNav={setView} onOpenClaim={openClaim} profile={profile} />}
           {role === "applicant" && view === "new" && <NewClaimWizard onSubmitClaim={addClaim} pushToast={pushToast} />}
           {role === "applicant" && view === "claims" && <MyClaims claims={claims} onOpenClaim={openClaim} onNav={setView} />}
           {role === "applicant" && view === "detail" && selectedClaim && <ClaimDetailApplicant claim={selectedClaim} onBack={() => setView("claims")} onReupload={reupload} onRate={rate} pushToast={pushToast} />}
-          {role === "admin" && view === "dashboard" && <AdminDashboard claims={claims} onOpenClaim={openClaim} />}
+          {role === "admin" && view === "dashboard" && <AdminDashboard claims={claims} onOpenClaim={openClaim} profile={profile} />}
           {role === "admin" && view === "queue" && <ClaimsQueue claims={claims} onOpenClaim={openClaim} plan={plan} onGoBilling={() => setView("billing")} pushToast={pushToast} />}
           {role === "admin" && view === "detail" && selectedClaim && <ClaimReview claim={selectedClaim} onBack={() => setView("queue")} onDecision={decide} onRequestInfo={requestInfo} pushToast={pushToast} />}
-          {role === "admin" && view === "billing" && <Billing plan={plan} onUpgrade={upgradePlan} onDowngrade={downgradePlan} />}
+          {role === "admin" && view === "billing" && <Billing plan={plan} onUpgrade={upgradePlan} onDowngrade={downgradePlan} onStartTrial={startTrial} />}
           {role === "superadmin" && view === "sa-dashboard" && <SuperAdminDashboard claims={claims} adjusters={adjusters} policyholders={policyholders} onOpenClaim={openClaim} onNav={setView} />}
           {role === "superadmin" && view === "sa-claims" && <SuperAdminClaims claims={claims} adjusters={adjusters} onOpenClaim={openClaim} />}
           {role === "superadmin" && view === "sa-adjusters" && <SuperAdminAdjusters adjusters={adjusters} claims={claims} onToggleStatus={toggleAdjusterStatus} onAddAdjuster={addAdjuster} pushToast={pushToast} />}
           {role === "superadmin" && view === "sa-policyholders" && <SuperAdminPolicyholders policyholders={policyholders} claims={claims} onToggleStatus={togglePolicyholderStatus} pushToast={pushToast} onOpenClaim={openClaim} />}
           {role === "superadmin" && view === "detail" && selectedClaim && <ClaimReview claim={selectedClaim} onBack={() => setView("sa-claims")} onDecision={decide} onRequestInfo={requestInfo} pushToast={pushToast} readOnly />}
           {view === "api" && <ApiDocs role={role} plan={plan} onGoBilling={() => setView("billing")} pushToast={pushToast} />}
+          {view === "settings" && <Settings role={role} profile={profile} onUpdateProfile={updateProfile} pushToast={pushToast} />}
         </main>
       </div>
       <Toast toasts={toasts} />

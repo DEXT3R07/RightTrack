@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { Search, AlertTriangle, Eye, Download, Lock } from "lucide-react";
 import { Card, StatusPill, SlaBadge, PremiumBadge } from "../../components/UI.jsx";
-import { CATEGORY_META, STATUS_META } from "../../lib/constants.js";
+import { CATEGORY_META, STATUS_META, isPremiumPlan } from "../../lib/constants.js";
 import { slaInfo, fmtDate, fmtMoney } from "../../lib/helpers.js";
 
 export default function ClaimsQueue({ claims, onOpenClaim, plan = "free", onGoBilling, pushToast }) {
   const [q, setQ] = useState("");
   const [statusF, setStatusF] = useState("all");
   const [sortBy, setSortBy] = useState("urgency");
-  const isPremium = plan === "premium";
+  const isPremium = isPremiumPlan(plan);
 
   let rows = claims.filter(
     (c) =>
@@ -29,7 +29,7 @@ export default function ClaimsQueue({ claims, onOpenClaim, plan = "free", onGoBi
 
   const exportCsv = () => {
     if (!isPremium) {
-      pushToast?.({ type: "warn", title: "CSV export is a Premium feature", body: "Upgrade to export the claims queue." });
+      pushToast?.({ type: "warn", title: "CSV export needs a subscription", body: "Start your free trial to export the claims queue." });
       onGoBilling?.();
       return;
     }
@@ -56,7 +56,7 @@ export default function ClaimsQueue({ claims, onOpenClaim, plan = "free", onGoBi
             className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition ${
               isPremium ? "bg-navy-900 text-white hover:bg-navy-700" : "bg-white text-ink-500 ring-1 ring-ink-900/10 hover:bg-navy-50/60"
             }`}
-            title={isPremium ? "Export queue as CSV" : "Premium feature — click to upgrade"}
+            title={isPremium ? "Export queue as CSV" : "Start a free trial to export as CSV"}
           >
             {isPremium ? <Download className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}Export CSV{!isPremium && <PremiumBadge className="ml-0.5" />}
           </button>
@@ -103,6 +103,9 @@ export default function ClaimsQueue({ claims, onOpenClaim, plan = "free", onGoBi
                   <td className="px-5 py-3.5"><button onClick={() => onOpenClaim(c.id)} className="p-2 rounded-lg hover:bg-navy-100 text-navy-700"><Eye className="w-4 h-4" /></button></td>
                 </tr>
               ))}
+              {rows.length === 0 && (
+                <tr><td colSpan={7} className="px-5 py-10 text-center text-sm text-ink-500">No claims in the queue yet.</td></tr>
+              )}
             </tbody>
           </table>
         </div>

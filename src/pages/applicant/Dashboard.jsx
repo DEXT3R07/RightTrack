@@ -3,7 +3,7 @@ import { Card, StatusPill, SlaBadge, EmptyState } from "../../components/UI.jsx"
 import { CATEGORY_META } from "../../lib/constants.js";
 import { fmtDate, fmtMoney } from "../../lib/helpers.js";
 
-export default function ApplicantDashboard({ claims, onNav, onOpenClaim }) {
+export default function ApplicantDashboard({ claims, onNav, onOpenClaim, profile }) {
   const counts = {
     submitted: claims.filter((c) => c.status === "submitted").length,
     under_review: claims.filter((c) => c.status === "under_review").length,
@@ -31,7 +31,7 @@ export default function ApplicantDashboard({ claims, onNav, onOpenClaim }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-navy-900">Welcome back, Policy Holder</h1>
+          <h1 className="font-display text-2xl font-semibold text-navy-900">Welcome back{profile?.fullName ? `, ${profile.fullName.split(" ")[0]}` : ""}</h1>
           <p className="text-ink-500 text-sm mt-1">Here's what's happening with your claims today.</p>
         </div>
         <button onClick={() => onNav("new")} className="inline-flex items-center gap-2 bg-navy-900 text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-navy-800">
@@ -45,7 +45,7 @@ export default function ApplicantDashboard({ claims, onNav, onOpenClaim }) {
           ["Action Required", counts.action_required, "text-rose-700", <AlertTriangle className="w-4 h-4" key="i" />],
           ["Approved", counts.approved, "text-emerald-700", <Check className="w-4 h-4" key="i" />],
         ].map(([l, v, c, ic]) => (
-          <Card key={l} className="p-5">
+          <Card key={l} className="p-5" hoverable>
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold text-ink-500 uppercase tracking-wide">{l}</p>
               <span className={c}>{ic}</span>

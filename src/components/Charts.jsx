@@ -6,7 +6,7 @@ export function DonutChart({ data, size = 160 }) {
     <div className="flex items-center gap-6">
       <svg width={size} height={size} className="-rotate-90 shrink-0">
         <circle cx={size / 2} cy={size / 2} r={r} stroke="#eef0f6" strokeWidth="20" fill="none" />
-        {data.map((d, i) => {
+        {total > 0 && data.map((d, i) => {
           const frac = d.value / total;
           const dash = frac * c;
           const el = <circle key={i} cx={size / 2} cy={size / 2} r={r} stroke={d.color} strokeWidth="20" fill="none" strokeDasharray={`${dash} ${c - dash}`} strokeDashoffset={-offset} strokeLinecap="butt" />;
@@ -30,7 +30,8 @@ export function DonutChart({ data, size = 160 }) {
 }
 
 export function SparkTrend({ points, width = 480, height = 140 }) {
-  const max = Math.max(...points.map((p) => Math.max(p.onTime, p.atRisk, p.breached))) * 1.2;
+  const rawMax = Math.max(...points.map((p) => Math.max(p.onTime, p.atRisk, p.breached)));
+  const max = rawMax > 0 ? rawMax * 1.2 : 1;
   const stepX = width / (points.length - 1);
   const line = (key, color) => {
     const d = points.map((p, i) => `${i === 0 ? "M" : "L"} ${i * stepX} ${height - (p[key] / max) * height}`).join(" ");

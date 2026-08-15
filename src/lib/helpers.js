@@ -33,3 +33,38 @@ export function slaInfo(claim) {
 export function uid(prefix) {
   return prefix + "-" + Math.random().toString(36).slice(2, 8).toUpperCase();
 }
+
+export function avgResolutionHours(claims) {
+  const hours = claims
+    .filter((c) => c.status === "approved" || c.status === "rejected")
+    .map((c) => {
+      const decision = [...c.history].reverse().find((h) => h.label.startsWith("Decision recorded"));
+      if (!decision) return null;
+      const hrs = (new Date(decision.ts) - new Date(c.submittedAt)) / 3600000;
+      return hrs >= 0 ? hrs : null;
+    })
+    .filter((v) => v != null);
+  if (!hours.length) return null;
+  return hours.reduce((s, v) => s + v, 0) / hours.length;
+}
+
+export function last7DaysTrend(claims) {
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(NOW);
+    d.setDate(d.getDate() - i);
+    days.push(d);
+  }
+  return days.map((day) => {
+    const dayKey = day.toDateString();
+    const dayClaims = claims.filter((c) => new Date(c.submittedAt).toDateString() === dayKey);
+    let onTime = 0, atRisk = 0, breached = 0;
+    dayClaims.forEach((c) => {
+      const s = slaInfo(c);
+      if (s.breached) breached++;
+      else if (!s.terminal && s.msLeft < 8 * 3600 * 1000) atRisk++;
+      else onTime++;
+    });
+    return { d: day.toLocaleDateString("en-NG", { day: "numeric", month: "short" }), onTime, atRisk, breached };
+  });
+}

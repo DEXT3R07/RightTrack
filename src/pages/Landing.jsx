@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Compass, Layers, Clock, Upload, AlertTriangle, Shield, Webhook, Check } from "lucide-react";
+import { Compass, Layers, Clock, Upload, AlertTriangle, Shield, Webhook, Check, Sparkles, ArrowRight } from "lucide-react";
 import CompassDial from "../components/CompassDial.jsx";
 import Reveal from "../components/Reveal.jsx";
 import SiteHeader from "../components/SiteHeader.jsx";
@@ -33,7 +33,7 @@ function AnimatedStat({ target, suffix = "", label, duration = 1200 }) {
   );
 }
 
-export default function Landing({ onGetStarted, onExploreAdmin, scrollTarget, onScrolled }) {
+export default function Landing({ onGetStarted, onGetStartedAdjuster, scrollTarget, onScrolled }) {
   const scrollY = useScrollY();
 
   useEffect(() => {
@@ -69,11 +69,11 @@ export default function Landing({ onGetStarted, onExploreAdmin, scrollTarget, on
           </Reveal>
           <Reveal delay={240} className="mt-9 flex items-center justify-center gap-3">
             <button onClick={onGetStarted} className="bg-bearing-600 hover:bg-bearing-500 text-white font-semibold px-6 py-3.5 rounded-xl shadow-pop transition hover:-translate-y-0.5">Submit a Claim</button>
-            <button onClick={onExploreAdmin} className="bg-white/5 hover:bg-white/10 text-white font-semibold px-6 py-3.5 rounded-xl ring-1 ring-white/15 transition hover:-translate-y-0.5">Open Adjuster Console</button>
+            <button onClick={onGetStartedAdjuster} className="bg-white/5 hover:bg-white/10 text-white font-semibold px-6 py-3.5 rounded-xl ring-1 ring-white/15 transition hover:-translate-y-0.5">I'm an Adjuster</button>
           </Reveal>
           <div className="mt-16 grid grid-cols-3 max-w-lg mx-auto gap-6 text-left">
             <AnimatedStat target={48} suffix="hr" label="SLA response window" />
-            <AnimatedStat target={99.2} suffix="%" label="On-time resolution" />
+            <AnimatedStat target={99.2} suffix="%" label="On-time resolution target" />
             <AnimatedStat target={24} suffix="/7" label="Live status tracking" />
           </div>
         </div>
@@ -148,7 +148,7 @@ export default function Landing({ onGetStarted, onExploreAdmin, scrollTarget, on
           <CompassDial className="compass-ticks absolute -right-24 -bottom-24 w-80 h-80" />
           <div className="relative">
             <div className="flex items-center justify-between mb-6">
-              <p className="text-white font-display font-semibold">CLM-89210</p>
+              <p className="text-white font-display font-semibold">CLM-00001</p>
               <span className="text-xs font-bold text-amber-300 bg-amber-400/10 ring-1 ring-amber-400/30 px-2.5 py-1 rounded-full">Action Required</span>
             </div>
             <div className="space-y-3">
@@ -161,9 +161,54 @@ export default function Landing({ onGetStarted, onExploreAdmin, scrollTarget, on
                 </div>
               ))}
             </div>
-            <div className="mt-6 pt-6 border-t border-white/10 text-xs text-navy-100/50">Live demo data — enter the app to explore the full workspace.</div>
+            <div className="mt-6 pt-6 border-t border-white/10 text-xs text-navy-100/50">Illustrative preview — enter the app to explore the full workspace.</div>
           </div>
         </Reveal>
+      </section>
+
+      <section id="adjusters" className="relative overflow-hidden bg-navy-950 py-24">
+        <CompassDial className="compass-ticks absolute -left-20 top-1/2 -translate-y-1/2 w-96 h-96" />
+        <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-bearing-600/20 blur-3xl pointer-events-none"></div>
+        <div className="relative max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-14 items-center">
+          <Reveal>
+            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-brass-400 bg-white/5 ring-1 ring-white/10 px-3.5 py-1.5 rounded-full mb-6">
+              <Sparkles className="w-3.5 h-3.5" /> For Adjusters &amp; Claims Teams
+            </span>
+            <h2 className="font-display text-3xl sm:text-4xl font-semibold text-white leading-tight max-w-lg">
+              Run your entire claims queue from one breach-aware workspace.
+            </h2>
+            <p className="text-navy-100/60 mt-5 max-w-lg leading-relaxed">
+              Every adjuster account starts with the core claims workspace, free. Start a 30-day free trial whenever you're ready for the API, bulk export, and team analytics — no card required, cancel anytime.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <button onClick={onGetStartedAdjuster} className="bg-bearing-600 hover:bg-bearing-500 text-white font-semibold px-6 py-3.5 rounded-xl shadow-pop transition hover:-translate-y-0.5 inline-flex items-center gap-2">
+                Get started for free<ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-navy-100/40 text-xs mt-4">30-day free trial · cancel anytime · no card required to start</p>
+          </Reveal>
+          <Reveal delay={120} className="rounded-3xl bg-white/[0.04] ring-1 ring-white/10 p-8 backdrop-blur">
+            <p className="text-xs font-bold uppercase tracking-widest text-brass-400 mb-5">What's included</p>
+            <div className="space-y-3">
+              {["Submit & review claims", "Claims queue & SLA tracking", "Core dashboard analytics", "Manual claim decisions"].map((f) => (
+                <div key={f} className="flex items-center gap-3">
+                  <span className="w-5 h-5 rounded-full bg-emerald-400/15 text-emerald-300 flex items-center justify-center shrink-0"><Check className="w-3 h-3" /></span>
+                  <span className="text-sm text-white/80">{f}</span>
+                </div>
+              ))}
+            </div>
+            <div className="h-px bg-white/10 my-5"></div>
+            <p className="text-xs font-bold uppercase tracking-widest text-brass-400 mb-5">Unlocked with your free trial</p>
+            <div className="space-y-3">
+              {["API key generation & webhook access", "CSV / bulk data export", "Team performance analytics", "Priority SLA breach alerts"].map((f) => (
+                <div key={f} className="flex items-center gap-3">
+                  <span className="w-5 h-5 rounded-full bg-brass-400/15 text-brass-300 flex items-center justify-center shrink-0"><Sparkles className="w-3 h-3" /></span>
+                  <span className="text-sm text-white/80">{f}</span>
+                </div>
+              ))}
+            </div>
+          </Reveal>
+        </div>
       </section>
 
       <SiteFooter />

@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Mail, Lock, ArrowLeft, User, Hash, Building2, BadgeCheck, ShieldCheck, UserRound, ShieldAlert } from "lucide-react";
+import { Mail, Lock, ArrowLeft, User, Hash, Building2, BadgeCheck, ShieldCheck, UserRound, ShieldAlert, Check } from "lucide-react";
 import Logo from "../components/Logo.jsx";
 import { SUPERADMIN_CREDENTIALS } from "../lib/constants.js";
 
@@ -15,16 +15,21 @@ function AuthShell({ children, wide }) {
   );
 }
 
-function GoogleButton() {
+function GoogleButton({ onClick, loading }) {
   return (
-    <button type="button" className="w-full flex items-center justify-center gap-2.5 border border-ink-900/12 rounded-xl py-2.5 text-sm font-semibold text-ink-700 hover:bg-navy-50/60 transition">
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      className="w-full flex items-center justify-center gap-2.5 border border-ink-900/12 rounded-xl py-2.5 text-sm font-semibold text-ink-700 hover:bg-navy-50/60 transition disabled:opacity-60 disabled:cursor-wait"
+    >
       <svg viewBox="0 0 24 24" className="w-4 h-4">
         <path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.66-.22-2.45H12v4.64h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.87c2.27-2.09 3.58-5.17 3.58-8.82Z" />
         <path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.94-2.91l-3.87-3c-1.08.72-2.45 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96H1.28v3.11A12 12 0 0 0 12 24Z" />
         <path fill="#FBBC05" d="M5.27 14.28A7.2 7.2 0 0 1 4.89 12c0-.79.14-1.56.38-2.28V6.61H1.28A12 12 0 0 0 0 12c0 1.93.47 3.76 1.28 5.39l3.99-3.11Z" />
         <path fill="#EA4335" d="M12 4.75c1.76 0 3.35.6 4.6 1.79l3.42-3.42C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.28 6.61l3.99 3.11C6.22 6.86 8.87 4.75 12 4.75Z" />
       </svg>
-      Continue with Google
+      {loading ? "Connecting to Google…" : "Continue with Google"}
     </button>
   );
 }
@@ -88,11 +93,17 @@ function RoleToggle({ value, onChange }) {
 const emptyPolicyHolder = { fullName: "", policyNumber: "", email: "", password: "", confirm: "" };
 const emptyAdjuster = { fullName: "", orgName: "", isRegisteredOrg: true, cac: "", licenseNumber: "", email: "", password: "", confirm: "" };
 
-export function SignUp({ onSubmit, onGoLogin }) {
-  const [role, setRole] = useState("applicant");
+export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "applicant" }) {
+  const [role, setRole] = useState(initialRole);
   const [policyHolder, setPolicyHolder] = useState(emptyPolicyHolder);
   const [adjuster, setAdjuster] = useState(emptyAdjuster);
   const [remember, setRemember] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const handleGoogleClick = () => {
+    setGoogleLoading(true);
+    setTimeout(() => { setGoogleLoading(false); onGoogleAuth?.("signup", role); }, 900);
+  };
 
   const form = role === "applicant" ? policyHolder : adjuster;
   const setForm = role === "applicant" ? setPolicyHolder : setAdjuster;
@@ -222,7 +233,7 @@ export function SignUp({ onSubmit, onGoLogin }) {
           Sign up as {role === "applicant" ? "Policy Holder" : "Adjuster"}
         </button>
         <div className="flex items-center gap-3 text-xs text-ink-300"><div className="h-px bg-ink-900/10 flex-1" />OR<div className="h-px bg-ink-900/10 flex-1" /></div>
-        <GoogleButton />
+        <GoogleButton onClick={handleGoogleClick} loading={googleLoading} />
       </form>
       <p className="text-sm text-ink-500 text-center mt-6">
         Already have an account? <button onClick={onGoLogin} className="font-semibold text-bearing-600 hover:underline">Log in</button>
@@ -231,10 +242,16 @@ export function SignUp({ onSubmit, onGoLogin }) {
   );
 }
 
-export function Login({ onSubmit, onGoSignup, onGoSuperAdmin }) {
+export function Login({ onSubmit, onGoSignup, onGoSuperAdmin, onForgotPassword, onGoogleAuth }) {
   const [role, setRole] = useState("applicant");
   const [form, setForm] = useState({ email: "", password: "" });
+  const [googleLoading, setGoogleLoading] = useState(false);
   const canSubmit = form.email.includes("@") && form.password.length > 0;
+
+  const handleGoogleClick = () => {
+    setGoogleLoading(true);
+    setTimeout(() => { setGoogleLoading(false); onGoogleAuth?.("login", role); }, 900);
+  };
 
   return (
     <AuthShell>
@@ -265,12 +282,12 @@ export function Login({ onSubmit, onGoSignup, onGoSuperAdmin }) {
           onChange={(e) => setForm({ ...form, password: e.target.value })}
           placeholder="Enter your password"
         />
-        <div className="text-right -mt-2"><button type="button" className="text-xs font-semibold text-bearing-600 hover:underline">Forgotten password?</button></div>
+        <div className="text-right -mt-2"><button type="button" onClick={onForgotPassword} className="text-xs font-semibold text-bearing-600 hover:underline">Forgotten password?</button></div>
         <button type="submit" disabled={!canSubmit} className="btn-primary w-full disabled:opacity-40 disabled:cursor-not-allowed">
           Log in as {role === "applicant" ? "Policy Holder" : "Adjuster"}
         </button>
         <div className="flex items-center gap-3 text-xs text-ink-300"><div className="h-px bg-ink-900/10 flex-1" />OR<div className="h-px bg-ink-900/10 flex-1" /></div>
-        <GoogleButton />
+        <GoogleButton onClick={handleGoogleClick} loading={googleLoading} />
       </form>
       <p className="text-sm text-ink-500 text-center mt-6">
         New to RightTrack? <button onClick={onGoSignup} className="font-semibold text-bearing-600 hover:underline">Sign up</button>
@@ -281,6 +298,130 @@ export function Login({ onSubmit, onGoSignup, onGoSuperAdmin }) {
             <ShieldAlert className="w-3.5 h-3.5" />Super Admin login
           </button>
         </p>
+      )}
+    </AuthShell>
+  );
+}
+
+export function ForgotPassword({ onBack, onDone }) {
+  const [step, setStep] = useState("email");
+  const [email, setEmail] = useState("");
+  const [digits, setDigits] = useState(["", "", "", "", "", ""]);
+  const refs = useRef([]);
+  const [pw, setPw] = useState({ password: "", confirm: "" });
+
+  const otpComplete = digits.every((d) => d !== "");
+  const passwordsOk = pw.password.length >= 6 && pw.password === pw.confirm;
+
+  const updateDigit = (i, val) => {
+    if (!/^[0-9]?$/.test(val)) return;
+    const next = [...digits];
+    next[i] = val;
+    setDigits(next);
+    if (val && i < 5) refs.current[i + 1]?.focus();
+  };
+  const onDigitKeyDown = (i, e) => {
+    if (e.key === "Backspace" && !digits[i] && i > 0) refs.current[i - 1]?.focus();
+  };
+
+  const sendOtp = (e) => {
+    e.preventDefault();
+    if (!email.includes("@")) return;
+    setStep("otp");
+  };
+  const verifyOtp = () => { if (otpComplete) setStep("reset"); };
+  const resetPassword = (e) => {
+    e.preventDefault();
+    if (!passwordsOk) return;
+    setStep("done");
+  };
+
+  return (
+    <AuthShell>
+      {step === "email" && (
+        <>
+          <button onClick={onBack} className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-navy-900 mb-4"><ArrowLeft className="w-4 h-4" />Back to log in</button>
+          <div className="flex justify-center mb-6"><Logo size="lg" /></div>
+          <h1 className="font-display text-xl font-semibold text-navy-900 text-center">Forgot password</h1>
+          <p className="text-sm text-ink-500 text-center mt-1">Enter the email on your account and we'll send you a one-time code to reset your password.</p>
+          <form className="space-y-4 mt-6" onSubmit={sendOtp}>
+            <TextField
+              label="Email Address"
+              icon={Mail}
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email address"
+            />
+            <button type="submit" disabled={!email.includes("@")} className="btn-primary w-full disabled:opacity-40 disabled:cursor-not-allowed">Send OTP</button>
+          </form>
+        </>
+      )}
+
+      {step === "otp" && (
+        <>
+          <button onClick={() => setStep("email")} className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-navy-900 mb-4"><ArrowLeft className="w-4 h-4" />Back</button>
+          <div className="flex justify-center mb-6"><Logo size="lg" /></div>
+          <h1 className="font-display text-xl font-semibold text-navy-900 text-center">Enter the code</h1>
+          <p className="text-sm text-ink-500 text-center mt-1">We've sent a 6-digit code to {email || "your email"}<br />It expires soon — check your inbox (and spam).</p>
+          <div className="flex justify-center gap-2 mt-6">
+            {digits.map((d, i) => (
+              <input
+                key={i}
+                ref={(el) => (refs.current[i] = el)}
+                value={d}
+                onChange={(e) => updateDigit(i, e.target.value)}
+                onKeyDown={(e) => onDigitKeyDown(i, e)}
+                maxLength={1}
+                inputMode="numeric"
+                className="w-11 h-12 text-center text-lg font-semibold rounded-xl border border-ink-900/12 focus:border-bearing-600 focus:ring-2 focus:ring-bearing-100 outline-none"
+              />
+            ))}
+          </div>
+          <button onClick={verifyOtp} disabled={!otpComplete} className="btn-primary w-full mt-6 disabled:opacity-40 disabled:cursor-not-allowed">Verify Code</button>
+          <p className="text-sm text-ink-500 text-center mt-4">Didn't receive a code? <button type="button" className="font-semibold text-bearing-600 hover:underline">Request a new one</button></p>
+        </>
+      )}
+
+      {step === "reset" && (
+        <>
+          <button onClick={() => setStep("otp")} className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-navy-900 mb-4"><ArrowLeft className="w-4 h-4" />Back</button>
+          <div className="flex justify-center mb-6"><Logo size="lg" /></div>
+          <h1 className="font-display text-xl font-semibold text-navy-900 text-center">Set a new password</h1>
+          <p className="text-sm text-ink-500 text-center mt-1">Choose a new password for {email || "your account"}.</p>
+          <form className="space-y-4 mt-6" onSubmit={resetPassword}>
+            <TextField
+              label="New Password"
+              icon={Lock}
+              type="password"
+              required
+              value={pw.password}
+              onChange={(e) => setPw({ ...pw, password: e.target.value })}
+              placeholder="Enter new password"
+              hint="At least 6 characters."
+            />
+            <TextField
+              label="Confirm Password"
+              icon={Lock}
+              type="password"
+              required
+              value={pw.confirm}
+              onChange={(e) => setPw({ ...pw, confirm: e.target.value })}
+              placeholder="Confirm new password"
+            />
+            <button type="submit" disabled={!passwordsOk} className="btn-primary w-full disabled:opacity-40 disabled:cursor-not-allowed">Reset Password</button>
+          </form>
+        </>
+      )}
+
+      {step === "done" && (
+        <div className="text-center py-2">
+          <div className="w-14 h-14 rounded-full bg-emerald-50 ring-1 ring-emerald-200 flex items-center justify-center mx-auto mb-4"><Check className="w-7 h-7 text-emerald-600" /></div>
+          <h1 className="font-display text-xl font-semibold text-navy-900">Password reset</h1>
+          <p className="text-sm text-ink-500 mt-1">You can now log in with your new password.</p>
+          <button onClick={onDone} className="btn-primary w-full mt-6">Back to Log in</button>
+        </div>
       )}
     </AuthShell>
   );

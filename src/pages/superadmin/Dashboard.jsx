@@ -1,7 +1,7 @@
 import { Send, CheckCircle2, AlertTriangle, Star, Users, ShieldCheck } from "lucide-react";
 import { Card, StatusPill } from "../../components/UI.jsx";
 import { DonutChart, SparkTrend } from "../../components/Charts.jsx";
-import { slaInfo, fmtDate, fmtMoney, NOW } from "../../lib/helpers.js";
+import { slaInfo, fmtDate, fmtMoney, NOW, last7DaysTrend } from "../../lib/helpers.js";
 import { CATEGORY_META } from "../../lib/constants.js";
 
 export default function SuperAdminDashboard({ claims, adjusters, policyholders, onOpenClaim, onNav }) {
@@ -23,12 +23,7 @@ export default function SuperAdminDashboard({ claims, adjusters, policyholders, 
     label: cat, value: claims.filter((c) => c.category === cat).length, color: CATEGORY_META[cat].color,
   }));
 
-  const trend = [
-    { d: "5 Aug", onTime: 22, atRisk: 4, breached: 1 }, { d: "6 Aug", onTime: 25, atRisk: 5, breached: 2 },
-    { d: "7 Aug", onTime: 21, atRisk: 6, breached: 1 }, { d: "8 Aug", onTime: 27, atRisk: 4, breached: 3 },
-    { d: "9 Aug", onTime: 24, atRisk: 7, breached: 2 }, { d: "10 Aug", onTime: 29, atRisk: 5, breached: 2 },
-    { d: "11 Aug", onTime: 26, atRisk: 5, breached: breachedClaims.length },
-  ];
+  const trend = last7DaysTrend(claims);
 
   const adjusterStats = adjusters.map((a) => {
     const owned = claims.filter((c) => c.adjuster === a.name);
@@ -49,22 +44,22 @@ export default function SuperAdminDashboard({ claims, adjusters, policyholders, 
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-5">
+        <Card className="p-5" hoverable>
           <div className="flex items-center justify-between"><p className="text-xs font-semibold text-ink-500 uppercase">Claims Sent</p><Send className="w-4 h-4 text-bearing-600" /></div>
           <p className="font-display text-3xl font-semibold text-navy-900 mt-2 num">{claimsSent}</p>
           <p className="text-xs text-ink-500 mt-1">Total submitted to date</p>
         </Card>
-        <Card className="p-5">
+        <Card className="p-5" hoverable>
           <div className="flex items-center justify-between"><p className="text-xs font-semibold text-ink-500 uppercase">Claims Attended To</p><CheckCircle2 className="w-4 h-4 text-emerald-600" /></div>
           <p className="font-display text-3xl font-semibold text-navy-900 mt-2 num">{claimsAttended}</p>
           <p className="text-xs text-ink-500 mt-1">{claimsSent ? Math.round((claimsAttended / claimsSent) * 100) : 0}% resolved to a decision</p>
         </Card>
-        <Card className="p-5">
+        <Card className="p-5" hoverable>
           <div className="flex items-center justify-between"><p className="text-xs font-semibold text-ink-500 uppercase">Claims Breached</p><AlertTriangle className="w-4 h-4 text-red-600" /></div>
           <p className="font-display text-3xl font-semibold text-navy-900 mt-2 num">{breachedClaims.length}</p>
           <p className="text-xs text-red-600 mt-1 font-medium">{breachedClaims.length > 0 ? "Needs escalation" : "No active breaches"}</p>
         </Card>
-        <Card className="p-5">
+        <Card className="p-5" hoverable>
           <div className="flex items-center justify-between"><p className="text-xs font-semibold text-ink-500 uppercase">Average Rating</p><Star className="w-4 h-4 text-brass-500" fill="currentColor" /></div>
           <p className="font-display text-3xl font-semibold text-navy-900 mt-2 num">{avgRating ? avgRating.toFixed(1) : "—"}<span className="text-base text-ink-300">/5</span></p>
           <p className="text-xs text-ink-500 mt-1">From {rated.length} rated claim(s)</p>
@@ -72,12 +67,12 @@ export default function SuperAdminDashboard({ claims, adjusters, policyholders, 
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4">
-        <Card className="p-5">
+        <Card className="p-5" hoverable>
           <div className="flex items-center justify-between"><p className="text-xs font-semibold text-ink-500 uppercase">Adjusters on Roster</p><Users className="w-4 h-4 text-navy-700" /></div>
           <p className="font-display text-3xl font-semibold text-navy-900 mt-2 num">{adjusters.filter((a) => a.status === "active").length}<span className="text-base text-ink-300"> / {adjusters.length}</span></p>
           <button onClick={() => onNav("sa-adjusters")} className="text-xs font-semibold text-bearing-600 hover:underline mt-1">Manage adjusters →</button>
         </Card>
-        <Card className="p-5">
+        <Card className="p-5" hoverable>
           <div className="flex items-center justify-between"><p className="text-xs font-semibold text-ink-500 uppercase">Policyholders on Platform</p><ShieldCheck className="w-4 h-4 text-navy-700" /></div>
           <p className="font-display text-3xl font-semibold text-navy-900 mt-2 num">{policyholders.filter((p) => p.status === "active").length}<span className="text-base text-ink-300"> / {policyholders.length}</span></p>
           <button onClick={() => onNav("sa-policyholders")} className="text-xs font-semibold text-bearing-600 hover:underline mt-1">Manage policyholders →</button>
@@ -110,6 +105,7 @@ export default function SuperAdminDashboard({ claims, adjusters, policyholders, 
             <button onClick={() => onNav("sa-adjusters")} className="text-xs font-semibold text-bearing-600 hover:underline">View all</button>
           </div>
           <div className="divide-y divide-ink-900/6">
+            {adjusterStats.length === 0 && <p className="text-sm text-ink-500 px-5 py-6">No adjusters on the roster yet.</p>}
             {adjusterStats.map((a) => (
               <div key={a.id} className="flex items-center gap-4 px-5 py-3.5">
                 <div className="w-9 h-9 rounded-full bg-navy-100 text-navy-700 flex items-center justify-center text-xs font-bold shrink-0">{a.name.split(" ").map((s) => s[0]).join("")}</div>

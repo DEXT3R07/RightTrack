@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Shield, Key, Copy, RotateCw, Trash2, Eye, EyeOff } from "lucide-react";
 import { Card, PremiumBadge, PremiumLock } from "../components/UI.jsx";
 import { uid } from "../lib/helpers.js";
+import { isPremiumPlan } from "../lib/constants.js";
 
 function CodeBlock({ children, lang = "bash" }) {
   return (
@@ -105,7 +106,7 @@ function ApiKeyManager({ pushToast }) {
 export default function ApiDocs({ role = "applicant", plan = "free", onGoBilling, pushToast }) {
   const [tab, setTab] = useState("rest");
   const isAdjuster = role === "admin";
-  const isPremium = plan === "premium";
+  const isPremium = isPremiumPlan(plan);
   const endpoints = [
     ["POST", "/v1/claims", "Create a new claim, returns a reference ID"],
     ["GET", "/v1/claims/:id", "Retrieve full claim status, history & SLA state"],
@@ -171,7 +172,7 @@ export default function ApiDocs({ role = "applicant", plan = "free", onGoBilling
           </div>
           <CodeBlock lang="json">{`{
   "event": "claim.sla_breached",
-  "claim_id": "CLM-89210",
+  "claim_id": "CLM-00001",
   "status": "action_required",
   "escalated_to": "senior_review",
   "occurred_at": "2026-08-11T09:15:00Z",
@@ -191,15 +192,15 @@ export default function ApiDocs({ role = "applicant", plan = "free", onGoBilling
     "Content-Type": "application/json"
   },
   body: JSON.stringify({
-    applicant: "Daniel Benson",
-    policy_id: "LDW/2026/12345",
+    applicant: "Jane Doe",
+    policy_id: "POL/2026/00001",
     category: "Health",
     amount: 250000,
     description: "Emergency room visit following RTA"
   })
 });
 const claim = await res.json();
-// -> { id: "CLM-89532", status: "submitted", sla_deadline: "..." }`}</CodeBlock>
+// -> { id: "CLM-00001", status: "submitted", sla_deadline: "..." }`}</CodeBlock>
           </div>
           <div>
             <p className="font-display font-semibold text-navy-900 mb-2">2. Poll or subscribe for status</p>
@@ -223,7 +224,7 @@ app.post("/webhooks/righttrack", (req, res) => {
         ) : (
           <PremiumLock
             feature="API key generation"
-            body="Generate scoped API keys to authenticate your own systems against the RightTrack API. This is a Premium feature for adjuster accounts."
+            body="Generate scoped API keys to authenticate your own systems against the RightTrack API. Included in the free trial and full subscription for adjuster accounts."
             onUpgrade={onGoBilling}
           />
         )

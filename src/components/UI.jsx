@@ -3,10 +3,23 @@ import { Check, X, AlertTriangle, Clock, Lock, Sparkles } from "lucide-react";
 import { STATUS_META } from "../lib/constants.js";
 import { slaInfo } from "../lib/helpers.js";
 
-export function Card({ children, className = "", ...rest }) {
+export function Card({ children, className = "", hoverable = false, ...rest }) {
   return (
-    <div className={`bg-white rounded-2xl border border-ink-900/8 shadow-card ${className}`} {...rest}>
+    <div className={`bg-white rounded-2xl border border-ink-900/8 shadow-card ${hoverable ? "card-hover" : ""} ${className}`} {...rest}>
       {children}
+    </div>
+  );
+}
+
+export function PageHeader({ eyebrow, title, subtitle, action }) {
+  return (
+    <div className="flex items-start justify-between flex-wrap gap-4">
+      <div>
+        {eyebrow && <p className="text-xs font-bold uppercase tracking-wide text-bearing-600 mb-1">{eyebrow}</p>}
+        <h1 className="font-display text-2xl font-semibold bg-gradient-to-r from-navy-900 to-navy-700 bg-clip-text text-transparent">{title}</h1>
+        {subtitle && <p className="text-ink-500 text-sm mt-1 max-w-2xl">{subtitle}</p>}
+      </div>
+      {action}
     </div>
   );
 }
@@ -106,7 +119,7 @@ export function Toast({ toasts }) {
 export function PremiumBadge({ className = "" }) {
   return (
     <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-md bg-brass-500/15 text-brass-600 ${className}`}>
-      <Sparkles className="w-2.5 h-2.5" />Premium
+      <Sparkles className="w-2.5 h-2.5" />Trial / Subscription
     </span>
   );
 }
@@ -117,7 +130,7 @@ export function PremiumLock({ feature, body, onUpgrade }) {
       <div className="w-12 h-12 rounded-2xl bg-navy-900 flex items-center justify-center text-white mb-4"><Lock className="w-5 h-5" /></div>
       <p className="font-display font-semibold text-navy-900 flex items-center gap-2">{feature}<PremiumBadge /></p>
       <p className="text-ink-500 text-sm mt-1.5 max-w-sm">{body}</p>
-      <button onClick={onUpgrade} className="btn-primary mt-5 px-5">Upgrade to Premium</button>
+      <button onClick={onUpgrade} className="btn-primary mt-5 px-5">Start Free Trial</button>
     </div>
   );
 }

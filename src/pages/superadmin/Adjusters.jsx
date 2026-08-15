@@ -54,7 +54,7 @@ export default function SuperAdminAdjusters({ adjusters, claims, onToggleStatus,
           const s = statsFor(a);
           const meta = ADJUSTER_STATUS_META[a.status];
           return (
-            <Card key={a.id} className="p-5">
+            <Card key={a.id} className="p-5" hoverable>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-full bg-navy-100 text-navy-700 flex items-center justify-center text-sm font-bold shrink-0">{a.name.split(" ").map((s) => s[0]).join("")}</div>
@@ -105,7 +105,7 @@ export default function SuperAdminAdjusters({ adjusters, claims, onToggleStatus,
           <p className="font-display font-semibold text-navy-900 text-lg">Invite Adjuster</p>
           <p className="text-xs text-ink-500 mt-1">They'll get an email to set up their claims console access.</p>
           <form className="space-y-4 mt-5" onSubmit={submitInvite}>
-            <Field label="Full Name"><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. K. Nnamdi" required /></Field>
+            <Field label="Full Name"><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Jane Doe" required /></Field>
             <Field label="Email"><input className="input" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="name@righttrack.africa" required /></Field>
             <Field label="Phone"><input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+234 ..." /></Field>
             <Field label="Unit">

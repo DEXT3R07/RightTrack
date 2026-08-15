@@ -37,7 +37,7 @@ export default function SuperAdminPolicyholders({ policyholders, claims, onToggl
           const theirClaims = claimsFor(p.policyId);
           const meta = POLICYHOLDER_STATUS_META[p.status];
           return (
-            <Card key={p.id} className="p-5">
+            <Card key={p.id} className="p-5" hoverable>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-display font-semibold text-navy-900 truncate">{p.name}</p>

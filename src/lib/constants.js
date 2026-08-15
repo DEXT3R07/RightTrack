@@ -26,7 +26,9 @@ export const RATING_TAGS = ["Fast Payout", "Clear Communication", "Easy Process"
 export const ACCEPTED_TYPES = ["application/pdf", "image/png", "image/jpeg"];
 export const MAX_SIZE_MB = 10;
 
-export const PREMIUM_PRICE = { monthly: 35000, annual: 420000 };
+export const PREMIUM_PRICE = { monthly: 18000, annual: 200000 };
+export const PREMIUM_TRIAL_DAYS = 30;
+export const isPremiumPlan = (plan) => plan === "premium" || plan === "trial";
 
 export const SUPERADMIN_CREDENTIALS = {
   email: "superadmin@righttrack.africa",
@@ -44,14 +46,13 @@ export const POLICYHOLDER_STATUS_META = {
 };
 
 export const PLAN_FEATURES = {
-  free: [
+  core: [
     "Submit & review claims",
     "Claims queue & SLA tracking",
     "Core dashboard analytics",
     "Manual claim decisions",
   ],
-  premium: [
-    "Everything in Standard",
+  subscriberOnly: [
     "API key generation & webhook access",
     "CSV / bulk data export",
     "Team performance analytics",
