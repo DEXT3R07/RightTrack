@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Mail, Lock, ArrowLeft, User, Hash, Building2, BadgeCheck, ShieldCheck, UserRound, ShieldAlert, Check } from "lucide-react";
+import { Mail, Lock, ArrowLeft, User, Hash, Building2, BadgeCheck, ShieldCheck, UserRound, ShieldAlert, Check, Eye, EyeOff } from "lucide-react";
 import Logo from "../components/Logo.jsx";
 import { SUPERADMIN_CREDENTIALS } from "../lib/constants.js";
 
@@ -34,13 +34,32 @@ function GoogleButton({ onClick, loading }) {
   );
 }
 
-function TextField({ label, icon: Icon, hint, ...inputProps }) {
+function TextField({ label, icon: Icon, hint, type, ...inputProps }) {
+  const [show, setShow] = useState(false);
+  const isPassword = type === "password";
+  const inputType = isPassword ? (show ? "text" : "password") : type;
+
   return (
     <label className="block">
       <span className="text-xs font-semibold text-ink-700 mb-1.5 block">{label}</span>
       <div className="relative">
         {Icon && <Icon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-300" />}
-        <input {...inputProps} className={`input ${Icon ? "pl-9" : ""}`} />
+        <input
+          type={inputType}
+          {...inputProps}
+          className={`input ${Icon ? "pl-9" : ""} ${isPassword ? "pr-9" : ""}`}
+        />
+        {isPassword && (
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={() => setShow((s) => !s)}
+            aria-label={show ? "Hide password" : "Show password"}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-300 hover:text-ink-600"
+          >
+            {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+        )}
       </div>
       {hint && <span className="text-[11px] text-ink-400 mt-1 block">{hint}</span>}
     </label>
@@ -93,7 +112,7 @@ function RoleToggle({ value, onChange }) {
 const emptyPolicyHolder = { fullName: "", policyNumber: "", email: "", password: "", confirm: "" };
 const emptyAdjuster = { fullName: "", orgName: "", isRegisteredOrg: true, cac: "", licenseNumber: "", email: "", password: "", confirm: "" };
 
-export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "applicant" }) {
+export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "applicant", loading }) {
   const [role, setRole] = useState(initialRole);
   const [policyHolder, setPolicyHolder] = useState(emptyPolicyHolder);
   const [adjuster, setAdjuster] = useState(emptyAdjuster);
@@ -229,8 +248,8 @@ export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "appli
           <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="rounded border-ink-900/20" />
           Remember me
         </label>
-        <button type="submit" disabled={!canSubmit} className="btn-primary w-full disabled:opacity-40 disabled:cursor-not-allowed">
-          Sign up as {role === "applicant" ? "Policy Holder" : "Adjuster"}
+        <button type="submit" disabled={!canSubmit || loading} className="btn-primary w-full disabled:opacity-40 disabled:cursor-not-allowed">
+          {loading ? "Creating account…" : `Sign up as ${role === "applicant" ? "Policy Holder" : "Adjuster"}`}
         </button>
         <div className="flex items-center gap-3 text-xs text-ink-300"><div className="h-px bg-ink-900/10 flex-1" />OR<div className="h-px bg-ink-900/10 flex-1" /></div>
         <GoogleButton onClick={handleGoogleClick} loading={googleLoading} />
@@ -242,11 +261,11 @@ export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "appli
   );
 }
 
-export function Login({ onSubmit, onGoSignup, onGoSuperAdmin, onForgotPassword, onGoogleAuth }) {
+export function Login({ onSubmit, onGoSignup, onGoSuperAdmin, onForgotPassword, onGoogleAuth, loading, error }) {
   const [role, setRole] = useState("applicant");
   const [form, setForm] = useState({ email: "", password: "" });
   const [googleLoading, setGoogleLoading] = useState(false);
-  const canSubmit = form.email.includes("@") && form.password.length > 0;
+  const canSubmit = form.email.includes("@") && form.password.length > 0 && !loading;
 
   const handleGoogleClick = () => {
     setGoogleLoading(true);
@@ -283,8 +302,9 @@ export function Login({ onSubmit, onGoSignup, onGoSuperAdmin, onForgotPassword, 
           placeholder="Enter your password"
         />
         <div className="text-right -mt-2"><button type="button" onClick={onForgotPassword} className="text-xs font-semibold text-bearing-600 hover:underline">Forgotten password?</button></div>
+        {error && <p className="text-xs font-medium text-red-600 bg-red-50 ring-1 ring-red-200 rounded-lg px-3 py-2">{error}</p>}
         <button type="submit" disabled={!canSubmit} className="btn-primary w-full disabled:opacity-40 disabled:cursor-not-allowed">
-          Log in as {role === "applicant" ? "Policy Holder" : "Adjuster"}
+          {loading ? "Checking…" : `Log in as ${role === "applicant" ? "Policy Holder" : "Adjuster"}`}
         </button>
         <div className="flex items-center gap-3 text-xs text-ink-300"><div className="h-px bg-ink-900/10 flex-1" />OR<div className="h-px bg-ink-900/10 flex-1" /></div>
         <GoogleButton onClick={handleGoogleClick} loading={googleLoading} />
@@ -477,7 +497,7 @@ export function SuperAdminLogin({ onSubmit, onBack }) {
   );
 }
 
-export function VerifyEmail({ email, onVerified, onBack }) {
+export function VerifyEmail({ email, onVerified, onBack, onResend, loading, error, resendStatus }) {
   const [digits, setDigits] = useState(["", "", "", "", "", ""]);
   const refs = useRef([]);
   const complete = digits.every((d) => d !== "");
@@ -491,6 +511,11 @@ export function VerifyEmail({ email, onVerified, onBack }) {
   };
   const onKeyDown = (i, e) => {
     if (e.key === "Backspace" && !digits[i] && i > 0) refs.current[i - 1]?.focus();
+  };
+
+  const handleVerify = () => {
+    if (!complete || loading) return;
+    onVerified?.(digits.join(""));
   };
 
   return (
@@ -513,8 +538,15 @@ export function VerifyEmail({ email, onVerified, onBack }) {
           />
         ))}
       </div>
-      <button onClick={onVerified} disabled={!complete} className="btn-primary w-full mt-6 disabled:opacity-40 disabled:cursor-not-allowed">Verify</button>
-      <p className="text-sm text-ink-500 text-center mt-4">Didn't receive a code? <button className="font-semibold text-bearing-600 hover:underline">Request a new one</button></p>
+      {error && <p className="text-xs font-medium text-red-600 bg-red-50 ring-1 ring-red-200 rounded-lg px-3 py-2 mt-4 text-center">{error}</p>}
+      <button onClick={handleVerify} disabled={!complete || loading} className="btn-primary w-full mt-6 disabled:opacity-40 disabled:cursor-not-allowed">
+        {loading ? "Verifying…" : "Verify"}
+      </button>
+      <p className="text-sm text-ink-500 text-center mt-4">
+        Didn't receive a code?{" "}
+        <button type="button" onClick={onResend} className="font-semibold text-bearing-600 hover:underline">Request a new one</button>
+        {resendStatus && <span className="block text-xs text-ink-400 mt-1">{resendStatus}</span>}
+      </p>
     </AuthShell>
   );
 }

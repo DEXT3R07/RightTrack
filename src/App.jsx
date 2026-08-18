@@ -28,6 +28,7 @@ import { seedClaims, seedAdjusters, seedPolicyholders } from "./lib/data.js";
 import { NOW, fmtMoney, uid } from "./lib/helpers.js";
 import { PREMIUM_PRICE, PREMIUM_TRIAL_DAYS, SUPERADMIN_CREDENTIALS } from "./lib/constants.js";
 import { SiteNavContext } from "./lib/SiteNav.jsx";
+import { loginRequest, verifyOtpRequest, resendOtpRequest, signupRequest } from "./lib/api.js";
 
 export default function App() {
   const [screen, setScreen] = useState("landing");
@@ -36,6 +37,9 @@ export default function App() {
   const [pendingRole, setPendingRole] = useState("applicant");
   const [signupRole, setSignupRole] = useState("applicant");
   const [pendingSignup, setPendingSignup] = useState(null);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [otpResendStatus, setOtpResendStatus] = useState("");
   const [role, setRole] = useState("applicant");
   const [plan, setPlan] = useState("free");
   const [claims, setClaims] = useState(seedClaims);
@@ -77,6 +81,7 @@ export default function App() {
       }));
     }
   };
+
   const exitApp = () => { setScreen("landing"); setView("dashboard"); setSelected(null); };
   const openClaim = (id) => { setSelected(id); setView("detail"); };
 
@@ -199,19 +204,93 @@ export default function App() {
   };
 
   if (screen === "signup") {
-    return <SignUp initialRole={signupRole} onGoLogin={() => setScreen("login")} onSubmit={(form) => { setPendingEmail(form.email); setPendingRole(form.role); setPendingSignup(form); setScreen("verify"); }} onGoogleAuth={handleGoogleAuth} />;
+    return (
+      <SignUp
+        initialRole={signupRole}
+        onGoLogin={() => setScreen("login")}
+        onSubmit={async (form) => {
+          setAuthLoading(true);
+          setAuthError("");
+          try {
+            await signupRequest(form);
+            pushToast({ type: "success", title: "Account created", body: "You can now log in with your new account." });
+            setScreen("login");
+          } catch (err) {
+            pushToast({ type: "warn", title: "Sign up failed", body: err.message });
+          } finally {
+            setAuthLoading(false);
+          }
+        }}
+        onGoogleAuth={handleGoogleAuth}
+        loading={authLoading}
+      />
+    );
   }
   if (screen === "login") {
-    return <Login onGoSignup={() => setScreen("signup")} onSubmit={(form) => enterApp(form.role, { email: form.email })} onGoSuperAdmin={() => setScreen("superadmin-login")} onForgotPassword={() => setScreen("forgot-password")} onGoogleAuth={handleGoogleAuth} />;
+    return (
+      <Login
+        onGoSignup={() => setScreen("signup")}
+        onSubmit={async (form) => {
+          setAuthLoading(true);
+          setAuthError("");
+          try {
+            await loginRequest(form.email, form.password);
+            setPendingEmail(form.email);
+            setPendingRole(form.role);
+            setOtpResendStatus("");
+            setScreen("login-verify");
+          } catch (err) {
+            setAuthError(err.message);
+          } finally {
+            setAuthLoading(false);
+          }
+        }}
+        onGoSuperAdmin={() => setScreen("superadmin-login")}
+        onForgotPassword={() => setScreen("forgot-password")}
+        onGoogleAuth={handleGoogleAuth}
+        loading={authLoading}
+        error={authError}
+      />
+    );
+  }
+  if (screen === "login-verify") {
+    return (
+      <VerifyEmail
+        email={pendingEmail}
+        onBack={() => { setAuthError(""); setScreen("login"); }}
+        loading={authLoading}
+        error={authError}
+        resendStatus={otpResendStatus}
+        onVerified={async (otp) => {
+          setAuthLoading(true);
+          setAuthError("");
+          try {
+            const res = await verifyOtpRequest(pendingEmail, otp);
+            localStorage.setItem("rt_token", res.token);
+            enterApp(res.user.role, res.user);
+          } catch (err) {
+            setAuthError(err.message);
+          } finally {
+            setAuthLoading(false);
+          }
+        }}
+        onResend={async () => {
+          setOtpResendStatus("Sending…");
+          try {
+            await resendOtpRequest(pendingEmail);
+            setOtpResendStatus("A new code has been sent.");
+          } catch (err) {
+            setOtpResendStatus(err.message);
+          }
+        }}
+      />
+    );
   }
   if (screen === "forgot-password") {
     return <ForgotPassword onBack={() => setScreen("login")} onDone={() => setScreen("login")} />;
   }
   if (screen === "superadmin-login") {
     return <SuperAdminLogin onBack={() => setScreen("login")} onSubmit={() => enterApp("superadmin")} />;
-  }
-  if (screen === "verify") {
-    return <VerifyEmail email={pendingEmail} onBack={() => setScreen("signup")} onVerified={() => enterApp(pendingRole, pendingSignup)} />;
   }
 
   const selectedClaim = claims.find((c) => c.id === selected);

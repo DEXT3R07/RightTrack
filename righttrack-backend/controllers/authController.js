@@ -1,0 +1,198 @@
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+const { generateOtp, hashOtp, verifyOtp } = require("../utils/otp");
+const { sendOtpEmail } = require("../utils/sendEmail");
+
+const OTP_EXPIRY_MINUTES = 5;
+const MAX_OTP_ATTEMPTS = 5;
+
+/**
+ * POST /api/auth/signup
+ * Body matches your SignUp form in Auth.jsx: { role, fullName, email, password,
+ * policyNumber?, orgName?, isRegisteredOrg?, cac?, licenseNumber? }
+ * Creates the account. Does NOT log them in — your frontend already routes
+ * signup -> VerifyEmail -> enterApp, so this just creates the user record.
+ */
+async function signup(req, res) {
+  try {
+    const { role, fullName, email, password, policyNumber, orgName, isRegisteredOrg, cac, licenseNumber } = req.body;
+
+    if (!fullName || !email || !password) {
+      return res.status(400).json({ message: "Full name, email, and password are required." });
+    }
+
+    const existing = await User.findOne({ email: email.toLowerCase().trim() });
+    if (existing) {
+      return res.status(409).json({ message: "An account with this email already exists." });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+      role: role || "applicant",
+      fullName,
+      email: email.toLowerCase().trim(),
+      password: hashedPassword,
+      policyNumber,
+      orgName,
+      isRegisteredOrg,
+      cac,
+      licenseNumber,
+    });
+
+    return res.status(201).json({
+      message: "Account created.",
+      user: { id: user._id, fullName: user.fullName, email: user.email, role: user.role },
+    });
+  } catch (err) {
+    console.error("Signup error:", err);
+    return res.status(500).json({ message: "Something went wrong. Please try again." });
+  }
+}
+
+/**
+ * STEP 1 — POST /api/auth/login
+ * Body: { email, password }
+ * Verifies credentials, generates + emails an OTP, but does NOT log the user in yet.
+ */
+async function login(req, res) {
+  console.log("LOGIN endpoint hit. Body:", req.body);
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required." });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      console.log("No user found for email:", email);
+      return res.status(401).json({ message: "Invalid email or password." });
+    }
+
+    const passwordMatches = await bcrypt.compare(password, user.password);
+    if (!passwordMatches) {
+      console.log("Password did not match for:", email);
+      return res.status(401).json({ message: "Invalid email or password." });
+    }
+
+    const otp = generateOtp();
+    console.log("Generated OTP for", email, ":", otp);
+    user.otpHash = hashOtp(otp);
+    user.otpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+    user.otpAttempts = 0;
+    await user.save();
+    console.log("User OTP fields saved. Calling sendOtpEmail...");
+
+    await sendOtpEmail(user.email, otp);
+    console.log("sendOtpEmail call completed without throwing.");
+
+    return res.status(200).json({
+      message: "OTP sent to your registered email.",
+      email: user.email, // frontend carries this forward to the verify screen
+    });
+  } catch (err) {
+    console.error("Login error:", err);
+    return res.status(500).json({ message: "Something went wrong. Please try again." });
+  }
+}
+
+/**
+ * STEP 2 — POST /api/auth/verify-otp
+ * Body: { email, otp }
+ * Verifies the OTP and, if valid, issues a JWT.
+ */
+async function verifyOtpHandler(req, res) {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required." });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user || !user.otpHash || !user.otpExpiresAt) {
+      return res.status(400).json({ message: "No pending verification for this account." });
+    }
+
+    if (user.otpExpiresAt < new Date()) {
+      user.otpHash = null;
+      user.otpExpiresAt = null;
+      await user.save();
+      return res.status(400).json({ message: "OTP has expired. Please log in again." });
+    }
+
+    if (user.otpAttempts >= MAX_OTP_ATTEMPTS) {
+      user.otpHash = null;
+      user.otpExpiresAt = null;
+      await user.save();
+      return res.status(429).json({ message: "Too many failed attempts. Please log in again." });
+    }
+
+    const isValid = verifyOtp(otp, user.otpHash);
+    if (!isValid) {
+      user.otpAttempts += 1;
+      await user.save();
+      return res.status(400).json({ message: "Incorrect OTP. Please try again." });
+    }
+
+    // Success — clear OTP fields, mark verified, issue token
+    user.otpHash = null;
+    user.otpExpiresAt = null;
+    user.otpAttempts = 0;
+    user.isVerified = true;
+    await user.save();
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    return res.status(200).json({
+      message: "Login successful.",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (err) {
+    console.error("OTP verification error:", err);
+    return res.status(500).json({ message: "Something went wrong. Please try again." });
+  }
+}
+
+/**
+ * POST /api/auth/resend-otp
+ * Body: { email }
+ * Generates a fresh OTP if the user has a pending login attempt.
+ */
+async function resendOtp(req, res) {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email: (email || "").toLowerCase().trim() });
+
+    if (!user) {
+      return res.status(400).json({ message: "No pending verification for this account." });
+    }
+
+    const otp = generateOtp();
+    user.otpHash = hashOtp(otp);
+    user.otpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+    user.otpAttempts = 0;
+    await user.save();
+
+    await sendOtpEmail(user.email, otp);
+
+    return res.status(200).json({ message: "A new OTP has been sent." });
+  } catch (err) {
+    console.error("Resend OTP error:", err);
+    return res.status(500).json({ message: "Something went wrong. Please try again." });
+  }
+}
+
+module.exports = { signup, login, verifyOtpHandler, resendOtp };
