@@ -4,7 +4,9 @@ export default function Topbar({ title, subtitle, role, plan, onMenu, notifCount
   const planLabel = plan === "premium" ? "Subscribed" : plan === "trial" ? "Free Trial" : "Free Plan";
   const accent = role === "superadmin" ? "from-brass-500 to-brass-600" : role === "admin" ? "from-bearing-600 to-bearing-400" : "from-navy-700 to-bearing-500";
   const roleLabel = role === "admin" ? "Adjuster Console" : role === "superadmin" ? "Super Admin Console" : "Policy Holder";
-  const identityLine = profile?.fullName || profile?.email || (role === "admin" ? "Adjuster account" : role === "superadmin" ? "System Administrator" : "Policyholder account");
+  const identityLine = role === "admin"
+    ? profile?.orgName || "Adjuster account"
+    : profile?.fullName || profile?.email || (role === "superadmin" ? "System Administrator" : "Policyholder account");
   return (
     <header className="sticky top-0 z-30 bg-white/85 backdrop-blur border-b border-ink-900/6 shrink-0">
       <div className={`h-[3px] bg-gradient-to-r ${accent}`}></div>

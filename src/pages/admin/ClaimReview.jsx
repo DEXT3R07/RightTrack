@@ -8,7 +8,7 @@ import AuditDrawer from "../../components/AuditDrawer.jsx";
 import { CATEGORY_META, STATUS_META, REJECTION_CODES } from "../../lib/constants.js";
 import { slaInfo, fmtDateTime, fmtMoney } from "../../lib/helpers.js";
 
-export default function ClaimReview({ claim, onBack, onDecision, onRequestInfo, pushToast, readOnly = false }) {
+export default function ClaimReview({ claim, onBack, onStartReview, onDecision, onRequestInfo, pushToast, readOnly = false }) {
   const [drawer, setDrawer] = useState(false);
   const [decision, setDecision] = useState(null);
   const [rejectCode, setRejectCode] = useState(REJECTION_CODES[0]);
@@ -60,6 +60,7 @@ export default function ClaimReview({ claim, onBack, onDecision, onRequestInfo, 
               <Row k="Claim Category" v={claim.category} />
               <Row k="Claim Amount" v={fmtMoney(claim.amount)} />
               <Row k="Policy Number" v={claim.policyId} />
+              <Row k="Insurer" v={claim.insurer} />
               <Row k="Submitted" v={fmtDateTime(claim.submittedAt)} />
             </dl>
             <div className="mt-4 pt-4 border-t border-ink-900/6">
@@ -138,6 +139,11 @@ export default function ClaimReview({ claim, onBack, onDecision, onRequestInfo, 
               <div className="rounded-xl bg-navy-50 px-4 py-4 text-sm text-ink-600">
                 This claim is closed with a final decision: <span className="font-semibold text-navy-900">{STATUS_META[claim.status].label}</span>.
                 {claim.status === "rejected" && <p className="mt-1 text-xs text-ink-500">Code: {claim.rejectionCode}</p>}
+              </div>
+            ) : claim.status === "submitted" ? (
+              <div className="rounded-xl bg-navy-50 px-4 py-4">
+                <p className="text-sm text-ink-600">This claim hasn't been opened yet. Start the review to assign it to yourself and unlock decision controls.</p>
+                <button onClick={() => onStartReview(claim.id)} className="btn-primary mt-3">Start Review</button>
               </div>
             ) : (
               <>

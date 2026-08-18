@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Mail, Lock, ArrowLeft, User, Hash, Building2, BadgeCheck, ShieldCheck, UserRound, ShieldAlert, Check } from "lucide-react";
 import Logo from "../components/Logo.jsx";
-import { SUPERADMIN_CREDENTIALS } from "../lib/constants.js";
+import { SUPERADMIN_CREDENTIALS, INSURERS } from "../lib/constants.js";
 
 function AuthShell({ children, wide }) {
   return (
@@ -91,7 +91,7 @@ function RoleToggle({ value, onChange }) {
 }
 
 const emptyPolicyHolder = { fullName: "", policyNumber: "", email: "", password: "", confirm: "" };
-const emptyAdjuster = { fullName: "", orgName: "", isRegisteredOrg: true, cac: "", licenseNumber: "", email: "", password: "", confirm: "" };
+const emptyAdjuster = { fullName: "", orgName: INSURERS[0], isRegisteredOrg: true, cac: "", licenseNumber: "", email: "", password: "", confirm: "" };
 
 export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "applicant" }) {
   const [role, setRole] = useState(initialRole);
@@ -155,15 +155,16 @@ export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "appli
           />
         ) : (
           <>
-            <TextField
-              label="Organization Name"
-              icon={Building2}
-              type="text"
-              required
-              value={adjuster.orgName}
-              onChange={(e) => setAdjuster({ ...adjuster, orgName: e.target.value })}
-              placeholder="e.g. Right Track Insurance Ltd"
-            />
+            <label className="block">
+              <span className="text-xs font-semibold text-ink-700 mb-1.5 block">Insurer / Organization</span>
+              <div className="relative">
+                <Building2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-300" />
+                <select value={adjuster.orgName} onChange={(e) => setAdjuster({ ...adjuster, orgName: e.target.value })} className="input pl-9" required>
+                  {INSURERS.map((i) => <option key={i}>{i}</option>)}
+                </select>
+              </div>
+              <span className="text-[11px] text-ink-400 mt-1 block">The insurer you'll be reviewing claims for.</span>
+            </label>
             <TextField
               label="Adjuster License / Staff ID"
               icon={BadgeCheck}
@@ -244,7 +245,7 @@ export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "appli
 
 export function Login({ onSubmit, onGoSignup, onGoSuperAdmin, onForgotPassword, onGoogleAuth }) {
   const [role, setRole] = useState("applicant");
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({ email: "", password: "", orgName: INSURERS[0] });
   const [googleLoading, setGoogleLoading] = useState(false);
   const canSubmit = form.email.includes("@") && form.password.length > 0;
 
@@ -264,6 +265,17 @@ export function Login({ onSubmit, onGoSignup, onGoSuperAdmin, onForgotPassword, 
       </div>
 
       <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); if (canSubmit) onSubmit({ role, ...form }); }}>
+        {role === "admin" && (
+          <label className="block">
+            <span className="text-xs font-semibold text-ink-700 mb-1.5 block">Insurer / Organization</span>
+            <div className="relative">
+              <Building2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-300" />
+              <select value={form.orgName} onChange={(e) => setForm({ ...form, orgName: e.target.value })} className="input pl-9">
+                {INSURERS.map((i) => <option key={i}>{i}</option>)}
+              </select>
+            </div>
+          </label>
+        )}
         <TextField
           label="Email Address"
           icon={Mail}
