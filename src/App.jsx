@@ -84,7 +84,6 @@ export default function App() {
       }));
     }
   };
-
   const exitApp = () => {
     localStorage.removeItem("rt_token");
     setScreen("landing");
@@ -297,7 +296,6 @@ export default function App() {
     );
   }
   if (screen === "login") {
-  if (screen === "login") {
     return (
       <Login
         onGoSignup={() => setScreen("signup")}
@@ -357,10 +355,6 @@ export default function App() {
         }}
       />
     );
-  }
-=======
-    return <Login onGoSignup={() => setScreen("signup")} onSubmit={(form) => enterApp(form.role, { email: form.email, orgName: form.orgName })} onGoSuperAdmin={() => setScreen("superadmin-login")} onForgotPassword={() => setScreen("forgot-password")} onGoogleAuth={handleGoogleAuth} />;
->>>>>>> 75e2ba9668a426444c6b46305916b86ee15a9b59
   }
   if (screen === "forgot-password") {
     return <ForgotPassword onBack={() => setScreen("login")} onDone={() => setScreen("login")} />;

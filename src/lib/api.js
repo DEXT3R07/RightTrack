@@ -33,6 +33,18 @@ export function googleAuthRequest(credential, role, remember) {
   return request("/google", { credential, role, remember });
 }
 
+export function forgotPasswordRequest(email) {
+  return request("/forgot-password", { email });
+}
+
+export function verifyResetOtpRequest(email, otp) {
+  return request("/verify-reset-otp", { email, otp });
+}
+
+export function resetPasswordRequest(email, otp, newPassword) {
+  return request("/reset-password", { email, otp, newPassword });
+}
+
 export async function meRequest(token) {
   const res = await fetch(`${BASE_URL}/me`, {
     headers: { Authorization: `Bearer ${token}` },

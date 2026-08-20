@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { Mail, Lock, ArrowLeft, User, Hash, Building2, BadgeCheck, ShieldCheck, UserRound, ShieldAlert, Check, Eye, EyeOff } from "lucide-react";
 import Logo from "../components/Logo.jsx";
 import { SUPERADMIN_CREDENTIALS, INSURERS } from "../lib/constants.js";
+import { forgotPasswordRequest, verifyResetOtpRequest, resetPasswordRequest } from "../lib/api.js";
 
 function AuthShell({ children, wide }) {
   return (
@@ -372,6 +373,9 @@ export function ForgotPassword({ onBack, onDone }) {
   const [digits, setDigits] = useState(["", "", "", "", "", ""]);
   const refs = useRef([]);
   const [pw, setPw] = useState({ password: "", confirm: "" });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [resendStatus, setResendStatus] = useState("");
 
   const otpComplete = digits.every((d) => d !== "");
   const passwordsOk = pw.password.length >= 6 && pw.password === pw.confirm;
@@ -387,16 +391,58 @@ export function ForgotPassword({ onBack, onDone }) {
     if (e.key === "Backspace" && !digits[i] && i > 0) refs.current[i - 1]?.focus();
   };
 
-  const sendOtp = (e) => {
+  const sendOtp = async (e) => {
     e.preventDefault();
-    if (!email.includes("@")) return;
-    setStep("otp");
+    if (!email.includes("@") || loading) return;
+    setLoading(true);
+    setError("");
+    try {
+      await forgotPasswordRequest(email);
+      setStep("otp");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
-  const verifyOtp = () => { if (otpComplete) setStep("reset"); };
-  const resetPassword = (e) => {
+
+  const verifyOtpStep = async () => {
+    if (!otpComplete || loading) return;
+    setLoading(true);
+    setError("");
+    try {
+      await verifyResetOtpRequest(email, digits.join(""));
+      setStep("reset");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resendOtp = async () => {
+    setResendStatus("Sending…");
+    try {
+      await forgotPasswordRequest(email);
+      setResendStatus("A new code has been sent.");
+    } catch (err) {
+      setResendStatus(err.message);
+    }
+  };
+
+  const submitNewPassword = async (e) => {
     e.preventDefault();
-    if (!passwordsOk) return;
-    setStep("done");
+    if (!passwordsOk || loading) return;
+    setLoading(true);
+    setError("");
+    try {
+      await resetPasswordRequest(email, digits.join(""), pw.password);
+      setStep("done");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -417,14 +463,17 @@ export function ForgotPassword({ onBack, onDone }) {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email address"
             />
-            <button type="submit" disabled={!email.includes("@")} className="btn-primary w-full disabled:opacity-40 disabled:cursor-not-allowed">Send OTP</button>
+            {error && <p className="text-xs font-medium text-red-600 bg-red-50 ring-1 ring-red-200 rounded-lg px-3 py-2">{error}</p>}
+            <button type="submit" disabled={!email.includes("@") || loading} className="btn-primary w-full disabled:opacity-40 disabled:cursor-not-allowed">
+              {loading ? "Sending…" : "Send OTP"}
+            </button>
           </form>
         </>
       )}
 
       {step === "otp" && (
         <>
-          <button onClick={() => setStep("email")} className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-navy-900 mb-4"><ArrowLeft className="w-4 h-4" />Back</button>
+          <button onClick={() => { setError(""); setStep("email"); }} className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-navy-900 mb-4"><ArrowLeft className="w-4 h-4" />Back</button>
           <div className="flex justify-center mb-6"><Logo size="lg" /></div>
           <h1 className="font-display text-xl font-semibold text-navy-900 text-center">Enter the code</h1>
           <p className="text-sm text-ink-500 text-center mt-1">We've sent a 6-digit code to {email || "your email"}<br />It expires soon — check your inbox (and spam).</p>
@@ -442,18 +491,25 @@ export function ForgotPassword({ onBack, onDone }) {
               />
             ))}
           </div>
-          <button onClick={verifyOtp} disabled={!otpComplete} className="btn-primary w-full mt-6 disabled:opacity-40 disabled:cursor-not-allowed">Verify Code</button>
-          <p className="text-sm text-ink-500 text-center mt-4">Didn't receive a code? <button type="button" className="font-semibold text-bearing-600 hover:underline">Request a new one</button></p>
+          {error && <p className="text-xs font-medium text-red-600 bg-red-50 ring-1 ring-red-200 rounded-lg px-3 py-2 mt-4 text-center">{error}</p>}
+          <button onClick={verifyOtpStep} disabled={!otpComplete || loading} className="btn-primary w-full mt-6 disabled:opacity-40 disabled:cursor-not-allowed">
+            {loading ? "Verifying…" : "Verify Code"}
+          </button>
+          <p className="text-sm text-ink-500 text-center mt-4">
+            Didn't receive a code?{" "}
+            <button type="button" onClick={resendOtp} className="font-semibold text-bearing-600 hover:underline">Request a new one</button>
+            {resendStatus && <span className="block text-xs text-ink-400 mt-1">{resendStatus}</span>}
+          </p>
         </>
       )}
 
       {step === "reset" && (
         <>
-          <button onClick={() => setStep("otp")} className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-navy-900 mb-4"><ArrowLeft className="w-4 h-4" />Back</button>
+          <button onClick={() => { setError(""); setStep("otp"); }} className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-navy-900 mb-4"><ArrowLeft className="w-4 h-4" />Back</button>
           <div className="flex justify-center mb-6"><Logo size="lg" /></div>
           <h1 className="font-display text-xl font-semibold text-navy-900 text-center">Set a new password</h1>
           <p className="text-sm text-ink-500 text-center mt-1">Choose a new password for {email || "your account"}.</p>
-          <form className="space-y-4 mt-6" onSubmit={resetPassword}>
+          <form className="space-y-4 mt-6" onSubmit={submitNewPassword}>
             <TextField
               label="New Password"
               icon={Lock}
@@ -473,7 +529,10 @@ export function ForgotPassword({ onBack, onDone }) {
               onChange={(e) => setPw({ ...pw, confirm: e.target.value })}
               placeholder="Confirm new password"
             />
-            <button type="submit" disabled={!passwordsOk} className="btn-primary w-full disabled:opacity-40 disabled:cursor-not-allowed">Reset Password</button>
+            {error && <p className="text-xs font-medium text-red-600 bg-red-50 ring-1 ring-red-200 rounded-lg px-3 py-2">{error}</p>}
+            <button type="submit" disabled={!passwordsOk || loading} className="btn-primary w-full disabled:opacity-40 disabled:cursor-not-allowed">
+              {loading ? "Resetting…" : "Reset Password"}
+            </button>
           </form>
         </>
       )}
