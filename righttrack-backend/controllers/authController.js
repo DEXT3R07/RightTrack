@@ -19,7 +19,7 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 async function signup(req, res) {
   console.log("SIGNUP endpoint hit. Body:", req.body);
   try {
-    const { role, fullName, email, password, policyNumber, orgName, isRegisteredOrg, cac, licenseNumber } = req.body;
+    const { role, fullName, email, password, policyNumber, orgName, isRegisteredOrg, cac, licenseNumber, claimCategories } = req.body;
 
     if (!fullName || !email || !password) {
       return res.status(400).json({ message: "Full name, email, and password are required." });
@@ -46,6 +46,7 @@ async function signup(req, res) {
       isRegisteredOrg,
       cac,
       licenseNumber,
+      claimCategories: role === "admin" ? (Array.isArray(claimCategories) ? claimCategories : []) : undefined,
     });
 
     return res.status(201).json({

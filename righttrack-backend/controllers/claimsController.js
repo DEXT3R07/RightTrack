@@ -224,4 +224,36 @@ async function decideClaim(req, res) {
   }
 }
 
-module.exports = { listClaims, createClaim, reuploadDocuments, rateClaim, startReview, requestInfo, decideClaim };
+/**
+ * GET /api/claims/insurers
+ * Returns the distinct list of organizations with at least one approved
+ * adjuster — this is the real, live list a policyholder can send a claim
+ * to, replacing the old hardcoded INSURERS constant.
+ */
+async function listInsurers(req, res) {
+  try {
+    const orgs = await User.find({ role: "admin", verificationStatus: "approved" })
+      .select("orgName claimCategories")
+      .lean();
+
+    // Merge organizations that share the same name (multiple approved
+    // adjusters at one company) into a single entry with combined categories.
+    const merged = {};
+    for (const org of orgs) {
+      if (!org.orgName) continue;
+      if (!merged[org.orgName]) merged[org.orgName] = new Set();
+      (org.claimCategories || []).forEach((c) => merged[org.orgName].add(c));
+    }
+
+    const insurers = Object.keys(merged)
+      .sort()
+      .map((name) => ({ name, categories: Array.from(merged[name]) }));
+
+    return res.status(200).json({ insurers });
+  } catch (err) {
+    console.error("List insurers error:", err);
+    return res.status(500).json({ message: "Something went wrong." });
+  }
+}
+
+module.exports = { listClaims, createClaim, reuploadDocuments, rateClaim, startReview, requestInfo, decideClaim, listInsurers };

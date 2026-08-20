@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, ChevronRight, ArrowLeft, Star, MessageSquareText } from "lucide-react";
 import { Card, Field, Row } from "../../components/UI.jsx";
 import FileDrop from "../../components/FileDrop.jsx";
+import InsurerSearchSelect from "../../components/InsurerSearchSelect.jsx";
 import { CATEGORY_META, INSURERS } from "../../lib/constants.js";
 import { fmtMoney, insurerRatingStats } from "../../lib/helpers.js";
+import { listInsurersRequest } from "../../lib/api.js";
 
 function InsurerRatingPanel({ claims, insurer }) {
   if (!insurer) return null;
@@ -42,12 +44,28 @@ function InsurerRatingPanel({ claims, insurer }) {
 
 export default function NewClaimWizard({ claims, onSubmitClaim, pushToast }) {
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ fullName: "", policyId: "", insurer: "", category: "Health", amount: "", description: "" });
+  const [form, setForm] = useState({ fullName: "", policyId: "", insurer: "", category: "", amount: "", description: "" });
   const [files, setFiles] = useState([]);
   const [refId, setRefId] = useState(null);
+  // Static fallback allows any category, since it predates per-org category selection.
+  const [insurerOptions, setInsurerOptions] = useState(INSURERS.map((name) => ({ name, categories: Object.keys(CATEGORY_META) })));
   const steps = ["Claim Details", "Upload Documents", "Review & Confirm", "Submit Claim"];
 
-  const canNext1 = form.fullName && form.policyId && form.insurer && form.amount && form.description.length > 10;
+  // Pull the live, real list of approved insurer organizations — each with
+  // the specific claim categories THAT organization actually handles.
+  // Falls back to the static list if the request fails, so the form still works.
+  useEffect(() => {
+    listInsurersRequest()
+      .then((res) => {
+        if (res.insurers && res.insurers.length > 0) setInsurerOptions(res.insurers);
+      })
+      .catch(() => { /* keep the static fallback list */ });
+  }, []);
+
+  const selectedInsurer = insurerOptions.find((o) => o.name === form.insurer);
+  const availableCategories = selectedInsurer?.categories?.length > 0 ? selectedInsurer.categories : Object.keys(CATEGORY_META);
+
+  const canNext1 = form.fullName && form.policyId && form.insurer && form.category && form.amount && form.description.length > 10;
   const canNext2 = files.length > 0;
 
   const submit = async () => {
@@ -92,16 +110,22 @@ export default function NewClaimWizard({ claims, onSubmitClaim, pushToast }) {
             <Field label="Full Name"><input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} placeholder="e.g. Dexter Echo" className="input" /></Field>
             <Field label="Entity / Policy ID"><input value={form.policyId} onChange={(e) => setForm({ ...form, policyId: e.target.value })} placeholder="e.g. LDW/2026/12345" className="input" /></Field>
             <Field label="Insurer" full>
-              <select value={form.insurer} onChange={(e) => setForm({ ...form, insurer: e.target.value })} className="input">
-                <option value="" disabled>Select the insurer on your policy</option>
-                {INSURERS.map((i) => <option key={i}>{i}</option>)}
-              </select>
+              <InsurerSearchSelect
+                options={insurerOptions.map((o) => o.name)}
+                value={form.insurer}
+                onChange={(insurer) => setForm({ ...form, insurer, category: "" })}
+                placeholder="Type to search for the insurer on your policy…"
+              />
               <InsurerRatingPanel claims={claims} insurer={form.insurer} />
             </Field>
             <Field label="Claim Category">
-              <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="input">
-                {Object.keys(CATEGORY_META).map((c) => <option key={c}>{c}</option>)}
+              <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="input" disabled={!form.insurer}>
+                <option value="" disabled>{form.insurer ? "Select a category" : "Choose an insurer first"}</option>
+                {availableCategories.map((c) => <option key={c}>{c}</option>)}
               </select>
+              {form.insurer && availableCategories.length < Object.keys(CATEGORY_META).length && (
+                <span className="text-[11px] text-ink-400 mt-1 block">Showing only the categories {form.insurer} handles.</span>
+              )}
             </Field>
             <Field label="Claim Amount (₦)"><input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="250000" className="input" /></Field>
             <Field label="Description of Claim" full>

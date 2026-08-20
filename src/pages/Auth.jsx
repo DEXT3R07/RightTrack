@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Mail, Lock, ArrowLeft, User, Hash, Building2, BadgeCheck, ShieldCheck, UserRound, ShieldAlert, Check, Eye, EyeOff } from "lucide-react";
 import Logo from "../components/Logo.jsx";
-import { SUPERADMIN_CREDENTIALS, INSURERS } from "../lib/constants.js";
+import { SUPERADMIN_CREDENTIALS, INSURERS, CATEGORY_META } from "../lib/constants.js";
 import { forgotPasswordRequest, verifyResetOtpRequest, resetPasswordRequest } from "../lib/api.js";
 
 function AuthShell({ children, wide }) {
@@ -111,7 +111,7 @@ function RoleToggle({ value, onChange }) {
 }
 
 const emptyPolicyHolder = { fullName: "", policyNumber: "", email: "", password: "", confirm: "" };
-const emptyAdjuster = { fullName: "", orgName: INSURERS[0], isRegisteredOrg: true, cac: "", licenseNumber: "", email: "", password: "", confirm: "" };
+const emptyAdjuster = { fullName: "", orgName: "", isRegisteredOrg: true, cac: "", licenseNumber: "", claimCategories: [], email: "", password: "", confirm: "" };
 
 // Loose format checks — these catch typos/nonsense input, not fraud.
 // e.g. "ADJ-2451", "NAICOM-ADJ-00214", "LIC12345"
@@ -143,7 +143,7 @@ export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "appli
   if (form.password.length < 6) errors.push("Password must be at least 6 characters.");
   if (form.password !== form.confirm) errors.push("Password and Confirm Password don't match.");
   if (role === "admin") {
-    if (!adjuster.orgName.trim()) errors.push("Select the organization you work for.");
+    if (!adjuster.orgName.trim()) errors.push("Enter your organization's name.");
     if (!adjuster.licenseNumber.trim()) {
       errors.push("Enter your Adjuster License / Staff ID.");
     } else if (!LICENSE_PATTERN.test(adjuster.licenseNumber.trim())) {
@@ -155,6 +155,9 @@ export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "appli
       } else if (!CAC_PATTERN.test(adjuster.cac.trim())) {
         errors.push("CAC Registration Number doesn't look right — expected format like RC 1234567.");
       }
+    }
+    if (adjuster.claimCategories.length === 0) {
+      errors.push("Select at least one claim category your organization handles.");
     }
   }
   const canSubmit = errors.length === 0;
@@ -189,16 +192,16 @@ export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "appli
 
         {role === "applicant" ? null : (
           <>
-            <label className="block">
-              <span className="text-xs font-semibold text-ink-700 mb-1.5 block">Insurer / Organization</span>
-              <div className="relative">
-                <Building2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-300" />
-                <select value={adjuster.orgName} onChange={(e) => setAdjuster({ ...adjuster, orgName: e.target.value })} className="input pl-9" required>
-                  {INSURERS.map((i) => <option key={i}>{i}</option>)}
-                </select>
-              </div>
-              <span className="text-[11px] text-ink-400 mt-1 block">The insurer you'll be reviewing claims for.</span>
-            </label>
+            <TextField
+              label="Organization Name"
+              icon={Building2}
+              type="text"
+              required
+              value={adjuster.orgName}
+              onChange={(e) => setAdjuster({ ...adjuster, orgName: e.target.value })}
+              placeholder="e.g. Anchorline Insurance"
+              hint="Your organization's name — this is what policyholders will search for."
+            />
             <TextField
               label="Adjuster License / Staff ID"
               icon={BadgeCheck}
@@ -229,6 +232,31 @@ export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "appli
                 hint="Required for registered organizations — Corporate Affairs Commission number."
               />
             )}
+            <div>
+              <span className="text-xs font-semibold text-ink-700 mb-1.5 block">Claim Categories You Handle</span>
+              <div className="grid grid-cols-2 gap-2">
+                {Object.keys(CATEGORY_META).map((cat) => {
+                  const checked = adjuster.claimCategories.includes(cat);
+                  return (
+                    <label key={cat} className={`flex items-center gap-2 text-sm rounded-xl border px-3 py-2 cursor-pointer ${checked ? "border-bearing-600 bg-bearing-100/50 text-navy-900" : "border-ink-900/12 text-ink-700"}`}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          const next = e.target.checked
+                            ? [...adjuster.claimCategories, cat]
+                            : adjuster.claimCategories.filter((c) => c !== cat);
+                          setAdjuster({ ...adjuster, claimCategories: next });
+                        }}
+                        className="rounded border-ink-900/20"
+                      />
+                      {cat}
+                    </label>
+                  );
+                })}
+              </div>
+              <span className="text-[11px] text-ink-400 mt-1.5 block">Policyholders will only see your organization for the categories you select here.</span>
+            </div>
             <p className="text-[11px] text-ink-400 -mt-1">
               Your License/Staff ID and CAC number are reviewed by a Super Admin before your account is activated. This usually takes 1–2 business days.
             </p>

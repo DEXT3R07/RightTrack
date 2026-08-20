@@ -8,7 +8,7 @@ const User = require("../models/User");
 async function listPendingAdjusters(req, res) {
   try {
     const adjusters = await User.find({ role: "admin", verificationStatus: "pending" })
-      .select("fullName email orgName licenseNumber cac isRegisteredOrg createdAt")
+      .select("fullName email orgName licenseNumber cac isRegisteredOrg claimCategories createdAt")
       .sort({ createdAt: 1 });
 
     return res.status(200).json({ adjusters });

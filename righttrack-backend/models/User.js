@@ -18,6 +18,7 @@ const userSchema = new mongoose.Schema(
     // Adjuster-specific
     orgName: { type: String, trim: true },
     isRegisteredOrg: { type: Boolean, default: false },
+    claimCategories: { type: [String], default: [] }, // which claim types this org handles
     cac: { type: String, trim: true },
     licenseNumber: { type: String, trim: true },
 
