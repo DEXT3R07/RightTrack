@@ -264,33 +264,39 @@ export default function App() {
 
   if (!sessionChecked) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="w-8 h-8 border-2 border-bearing-600 border-t-transparent rounded-full animate-spin" />
-      </div>
+      <>
+        <div className="min-h-screen flex items-center justify-center bg-white">
+          <div className="w-8 h-8 border-2 border-bearing-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+        <Toast toasts={toasts} />
+      </>
     );
   }
 
   if (screen === "landing") {
     return (
-      <SiteNavContext.Provider value={siteNav}>
-        <Landing onGetStarted={siteNav.onGetStarted} onGetStartedAdjuster={goSignupAsAdjuster} onLogin={siteNav.onLogin} scrollTarget={scrollTarget} onScrolled={() => setScrollTarget(null)} />
-      </SiteNavContext.Provider>
+      <>
+        <SiteNavContext.Provider value={siteNav}>
+          <Landing onGetStarted={siteNav.onGetStarted} onGetStartedAdjuster={goSignupAsAdjuster} onLogin={siteNav.onLogin} scrollTarget={scrollTarget} onScrolled={() => setScrollTarget(null)} />
+        </SiteNavContext.Provider>
+        <Toast toasts={toasts} />
+      </>
     );
   }
   if (screen === "developers") {
-    return <SiteNavContext.Provider value={siteNav}><Developers /></SiteNavContext.Provider>;
+    return <><SiteNavContext.Provider value={siteNav}><Developers /></SiteNavContext.Provider><Toast toasts={toasts} /></>;
   }
   if (screen === "faq") {
-    return <SiteNavContext.Provider value={siteNav}><Faq /></SiteNavContext.Provider>;
+    return <><SiteNavContext.Provider value={siteNav}><Faq /></SiteNavContext.Provider><Toast toasts={toasts} /></>;
   }
   if (screen === "blog") {
-    return <SiteNavContext.Provider value={siteNav}><Blog /></SiteNavContext.Provider>;
+    return <><SiteNavContext.Provider value={siteNav}><Blog /></SiteNavContext.Provider><Toast toasts={toasts} /></>;
   }
   if (screen === "privacy") {
-    return <SiteNavContext.Provider value={siteNav}><Privacy /></SiteNavContext.Provider>;
+    return <><SiteNavContext.Provider value={siteNav}><Privacy /></SiteNavContext.Provider><Toast toasts={toasts} /></>;
   }
   if (screen === "terms") {
-    return <SiteNavContext.Provider value={siteNav}><Terms /></SiteNavContext.Provider>;
+    return <><SiteNavContext.Provider value={siteNav}><Terms /></SiteNavContext.Provider><Toast toasts={toasts} /></>;
   }
   const handleGoogleAuth = (mode, role) => {
     pendingGoogleRoleRef.current = role || "applicant";
@@ -302,6 +308,7 @@ export default function App() {
 
   if (screen === "signup") {
     return (
+      <>
       <SignUp
         initialRole={signupRole}
         onGoLogin={() => setScreen("login")}
@@ -321,10 +328,13 @@ export default function App() {
         onGoogleAuth={handleGoogleAuth}
         loading={authLoading}
       />
+      <Toast toasts={toasts} />
+      </>
     );
   }
   if (screen === "login") {
     return (
+      <>
       <Login
         onGoSignup={() => setScreen("signup")}
         onSubmit={async (form) => {
@@ -349,10 +359,13 @@ export default function App() {
         loading={authLoading}
         error={authError}
       />
+      <Toast toasts={toasts} />
+      </>
     );
   }
   if (screen === "login-verify") {
     return (
+      <>
       <VerifyEmail
         email={pendingEmail}
         onBack={() => { setAuthError(""); setScreen("login"); }}
@@ -382,13 +395,15 @@ export default function App() {
           }
         }}
       />
+      <Toast toasts={toasts} />
+      </>
     );
   }
   if (screen === "forgot-password") {
-    return <ForgotPassword onBack={() => setScreen("login")} onDone={() => setScreen("login")} />;
+    return <><ForgotPassword onBack={() => setScreen("login")} onDone={() => setScreen("login")} /><Toast toasts={toasts} /></>;
   }
   if (screen === "superadmin-login") {
-    return <SuperAdminLogin onBack={() => setScreen("login")} onSubmit={() => enterApp("superadmin")} />;
+    return <><SuperAdminLogin onBack={() => setScreen("login")} onSubmit={() => enterApp("superadmin")} /><Toast toasts={toasts} /></>;
   }
 
   const selectedClaim = claims.find((c) => c.id === selected);
