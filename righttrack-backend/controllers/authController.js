@@ -1,11 +1,13 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
 const { generateOtp, hashOtp, verifyOtp } = require("../utils/otp");
 const { sendOtpEmail } = require("../utils/sendEmail");
 
 const OTP_EXPIRY_MINUTES = 5;
 const MAX_OTP_ATTEMPTS = 5;
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 /**
  * POST /api/auth/signup
@@ -42,8 +44,10 @@ async function signup(req, res) {
     });
 
     return res.status(201).json({
-      message: "Account created.",
-      user: { id: user._id, fullName: user.fullName, email: user.email, role: user.role },
+      message: role === "admin"
+        ? "Account created. Your License/Staff ID and CAC number are now awaiting Super Admin approval — you'll be able to log in once approved."
+        : "Account created.",
+      user: { id: user._id, fullName: user.fullName, email: user.email, role: user.role, verificationStatus: user.verificationStatus },
     });
   } catch (err) {
     console.error("Signup error:", err);
@@ -77,6 +81,13 @@ async function login(req, res) {
       return res.status(401).json({ message: "Invalid email or password." });
     }
 
+    if (user.verificationStatus === "pending") {
+      return res.status(403).json({ message: "Your adjuster account is still awaiting Super Admin approval. This usually takes 1–2 business days." });
+    }
+    if (user.verificationStatus === "rejected") {
+      return res.status(403).json({ message: user.verificationNote || "Your adjuster account application was not approved. Contact support for details." });
+    }
+
     const otp = generateOtp();
     console.log("Generated OTP for", email, ":", otp);
     user.otpHash = hashOtp(otp);
@@ -105,7 +116,7 @@ async function login(req, res) {
  */
 async function verifyOtpHandler(req, res) {
   try {
-    const { email, otp } = req.body;
+    const { email, otp, remember } = req.body;
 
     if (!email || !otp) {
       return res.status(400).json({ message: "Email and OTP are required." });
@@ -147,7 +158,7 @@ async function verifyOtpHandler(req, res) {
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: remember ? "30d" : "1d" }
     );
 
     return res.status(200).json({
@@ -195,4 +206,99 @@ async function resendOtp(req, res) {
   }
 }
 
-module.exports = { signup, login, verifyOtpHandler, resendOtp };
+/**
+ * GET /api/auth/me
+ * Requires a valid JWT (Authorization: Bearer <token>).
+ * Returns the current user's info — used on app load to restore
+ * a session from a token saved in localStorage.
+ */
+async function me(req, res) {
+  try {
+    const user = await User.findById(req.user.id).select("-password -otpHash -otpExpiresAt -otpAttempts");
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+    return res.status(200).json({ user });
+  } catch (err) {
+    console.error("Me endpoint error:", err);
+    return res.status(500).json({ message: "Something went wrong." });
+  }
+}
+
+/**
+ * POST /api/auth/google
+ * Body: { credential, role, remember }
+ * `credential` is the ID token Google's Sign-In button hands back to the frontend.
+ * We verify it server-side, then find-or-create the account and log them in
+ * directly — no password, no OTP, since Google has already verified the email.
+ */
+async function googleAuth(req, res) {
+  try {
+    const { credential, role, remember } = req.body;
+
+    if (!credential) {
+      return res.status(400).json({ message: "Missing Google credential." });
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+
+    if (!payload.email_verified) {
+      return res.status(400).json({ message: "Google email is not verified." });
+    }
+
+    const email = payload.email.toLowerCase().trim();
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      if (role === "admin") {
+        return res.status(400).json({ message: "Adjuster accounts need organization details — please use the full sign-up form instead of Google for your first sign-up." });
+      }
+      user = await User.create({
+        role: role || "applicant",
+        fullName: payload.name || email.split("@")[0],
+        email,
+        isGoogleAccount: true,
+        isVerified: true,
+      });
+    } else if (!user.isGoogleAccount) {
+      // An account with this email already exists via normal signup.
+      // Link it: allow Google sign-in for it going forward too.
+      user.isGoogleAccount = true;
+      user.isVerified = true;
+      await user.save();
+    }
+
+    if (user.verificationStatus === "pending") {
+      return res.status(403).json({ message: "Your adjuster account is still awaiting Super Admin approval. This usually takes 1–2 business days." });
+    }
+    if (user.verificationStatus === "rejected") {
+      return res.status(403).json({ message: user.verificationNote || "Your adjuster account application was not approved. Contact support for details." });
+    }
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: remember ? "30d" : "1d" }
+    );
+
+    return res.status(200).json({
+      message: "Login successful.",
+      token,
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (err) {
+    console.error("Google auth error:", err);
+    return res.status(401).json({ message: "Google sign-in failed. Please try again." });
+  }
+}
+
+module.exports = { signup, login, verifyOtpHandler, resendOtp, me, googleAuth };

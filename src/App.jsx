@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Sidebar from "./components/Sidebar.jsx";
 import Topbar from "./components/Topbar.jsx";
 import NotifPanel from "./components/NotifPanel.jsx";
@@ -28,18 +28,21 @@ import { seedClaims, seedAdjusters, seedPolicyholders } from "./lib/data.js";
 import { NOW, fmtMoney, uid } from "./lib/helpers.js";
 import { PREMIUM_PRICE, PREMIUM_TRIAL_DAYS, SUPERADMIN_CREDENTIALS } from "./lib/constants.js";
 import { SiteNavContext } from "./lib/SiteNav.jsx";
-import { loginRequest, verifyOtpRequest, resendOtpRequest, signupRequest } from "./lib/api.js";
+import { loginRequest, verifyOtpRequest, resendOtpRequest, signupRequest, meRequest, googleAuthRequest } from "./lib/api.js";
+import { initGoogleSignIn, promptGoogleSignIn } from "./lib/googleAuth.js";
 
 export default function App() {
   const [screen, setScreen] = useState("landing");
   const [scrollTarget, setScrollTarget] = useState(null);
   const [pendingEmail, setPendingEmail] = useState("");
   const [pendingRole, setPendingRole] = useState("applicant");
+  const [pendingRemember, setPendingRemember] = useState(false);
   const [signupRole, setSignupRole] = useState("applicant");
   const [pendingSignup, setPendingSignup] = useState(null);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState("");
   const [otpResendStatus, setOtpResendStatus] = useState("");
+  const [sessionChecked, setSessionChecked] = useState(false);
   const [role, setRole] = useState("applicant");
   const [plan, setPlan] = useState("free");
   const [claims, setClaims] = useState(seedClaims);
@@ -82,7 +85,50 @@ export default function App() {
     }
   };
 
-  const exitApp = () => { setScreen("landing"); setView("dashboard"); setSelected(null); };
+  const exitApp = () => {
+    localStorage.removeItem("rt_token");
+    setScreen("landing");
+    setView("dashboard");
+    setSelected(null);
+  };
+
+  // On page load, try to restore a session from a token saved in localStorage.
+  // This is what makes "Remember me" actually stick across refreshes.
+  useEffect(() => {
+    const token = localStorage.getItem("rt_token");
+    if (!token) {
+      setSessionChecked(true);
+      return;
+    }
+    meRequest(token)
+      .then((res) => {
+        enterApp(res.user.role, res.user);
+      })
+      .catch(() => {
+        localStorage.removeItem("rt_token");
+      })
+      .finally(() => setSessionChecked(true));
+  }, []);
+
+  // Set up Google Identity Services once. The callback fires whenever the
+  // person completes the Google popup, from whichever button triggered it.
+  const pendingGoogleRoleRef = useRef("applicant");
+  useEffect(() => {
+    initGoogleSignIn(async (credential) => {
+      setAuthLoading(true);
+      try {
+        const res = await googleAuthRequest(credential, pendingGoogleRoleRef.current, false);
+        localStorage.setItem("rt_token", res.token);
+        enterApp(res.user.role, res.user);
+        pushToast({ type: "success", title: "Signed in with Google", body: `Welcome, ${res.user.fullName || res.user.email}.` });
+      } catch (err) {
+        pushToast({ type: "warn", title: "Google sign-in failed", body: err.message });
+      } finally {
+        setAuthLoading(false);
+      }
+    });
+  }, []);
+
   const openClaim = (id) => { setSelected(id); setView("detail"); };
 
   const addClaim = (claimObj, refToOpen) => {
@@ -177,6 +223,14 @@ export default function App() {
   };
   const goSignupAsAdjuster = () => { setSignupRole("admin"); setScreen("signup"); };
 
+  if (!sessionChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="w-8 h-8 border-2 border-bearing-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   if (screen === "landing") {
     return (
       <SiteNavContext.Provider value={siteNav}>
@@ -199,8 +253,12 @@ export default function App() {
   if (screen === "terms") {
     return <SiteNavContext.Provider value={siteNav}><Terms /></SiteNavContext.Provider>;
   }
-  const handleGoogleAuth = () => {
-    pushToast({ type: "warn", title: "Google sign-in isn't connected yet", body: "This button is wired and ready — we'll enable it once Google OAuth is set up." });
+  const handleGoogleAuth = (mode, role) => {
+    pendingGoogleRoleRef.current = role || "applicant";
+    const opened = promptGoogleSignIn();
+    if (!opened) {
+      pushToast({ type: "warn", title: "Google sign-in unavailable", body: "Please check your internet connection and try again." });
+    }
   };
 
   if (screen === "signup") {
@@ -237,6 +295,7 @@ export default function App() {
             await loginRequest(form.email, form.password);
             setPendingEmail(form.email);
             setPendingRole(form.role);
+            setPendingRemember(form.remember);
             setOtpResendStatus("");
             setScreen("login-verify");
           } catch (err) {
@@ -265,7 +324,7 @@ export default function App() {
           setAuthLoading(true);
           setAuthError("");
           try {
-            const res = await verifyOtpRequest(pendingEmail, otp);
+            const res = await verifyOtpRequest(pendingEmail, otp, pendingRemember);
             localStorage.setItem("rt_token", res.token);
             enterApp(res.user.role, res.user);
           } catch (err) {

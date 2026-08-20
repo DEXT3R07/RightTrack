@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Mail, Lock, ArrowLeft, User, Hash, Building2, BadgeCheck, ShieldCheck, UserRound, ShieldAlert, Check, Eye, EyeOff } from "lucide-react";
 import Logo from "../components/Logo.jsx";
-import { SUPERADMIN_CREDENTIALS } from "../lib/constants.js";
+import { SUPERADMIN_CREDENTIALS, INSURERS } from "../lib/constants.js";
 
 function AuthShell({ children, wide }) {
   return (
@@ -110,7 +110,13 @@ function RoleToggle({ value, onChange }) {
 }
 
 const emptyPolicyHolder = { fullName: "", policyNumber: "", email: "", password: "", confirm: "" };
-const emptyAdjuster = { fullName: "", orgName: "", isRegisteredOrg: true, cac: "", licenseNumber: "", email: "", password: "", confirm: "" };
+const emptyAdjuster = { fullName: "", orgName: INSURERS[0], isRegisteredOrg: true, cac: "", licenseNumber: "", email: "", password: "", confirm: "" };
+
+// Loose format checks — these catch typos/nonsense input, not fraud.
+// e.g. "ADJ-2451", "NAICOM-ADJ-00214", "LIC12345"
+const LICENSE_PATTERN = /^[A-Za-z]{2,}[-\s]?[A-Za-z0-9-]{3,}$/;
+// Nigerian CAC format: RC / BN / IT followed by 5-7 digits, e.g. "RC 1234567"
+const CAC_PATTERN = /^(RC|BN|IT)\s?\d{5,7}$/i;
 
 export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "applicant", loading }) {
   const [role, setRole] = useState(initialRole);
@@ -118,6 +124,7 @@ export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "appli
   const [adjuster, setAdjuster] = useState(emptyAdjuster);
   const [remember, setRemember] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const handleGoogleClick = () => {
     setGoogleLoading(true);
@@ -127,15 +134,33 @@ export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "appli
   const form = role === "applicant" ? policyHolder : adjuster;
   const setForm = role === "applicant" ? setPolicyHolder : setAdjuster;
 
-  const passwordsOk = form.password.length >= 6 && form.password === form.confirm;
-  const baseOk = form.fullName.trim().length > 1 && form.email.includes("@") && passwordsOk;
-  const canSubmit =
-    role === "applicant"
-      ? baseOk && policyHolder.policyNumber.trim().length > 0
-      : baseOk && adjuster.orgName.trim().length > 0 && adjuster.licenseNumber.trim().length > 0 && (!adjuster.isRegisteredOrg || adjuster.cac.trim().length > 0);
+  // Collect every validation problem as a plain-English message, so the
+  // button is never just silently disabled — the person always sees why.
+  const errors = [];
+  if (form.fullName.trim().length <= 1) errors.push("Enter your full name.");
+  if (!form.email.includes("@")) errors.push("Enter a valid email address.");
+  if (form.password.length < 6) errors.push("Password must be at least 6 characters.");
+  if (form.password !== form.confirm) errors.push("Password and Confirm Password don't match.");
+  if (role === "admin") {
+    if (!adjuster.orgName.trim()) errors.push("Select the organization you work for.");
+    if (!adjuster.licenseNumber.trim()) {
+      errors.push("Enter your Adjuster License / Staff ID.");
+    } else if (!LICENSE_PATTERN.test(adjuster.licenseNumber.trim())) {
+      errors.push("Adjuster License / Staff ID doesn't look right — expected letters and numbers, e.g. NAICOM-ADJ-00214.");
+    }
+    if (adjuster.isRegisteredOrg) {
+      if (!adjuster.cac.trim()) {
+        errors.push("Enter your CAC Registration Number.");
+      } else if (!CAC_PATTERN.test(adjuster.cac.trim())) {
+        errors.push("CAC Registration Number doesn't look right — expected format like RC 1234567.");
+      }
+    }
+  }
+  const canSubmit = errors.length === 0;
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setSubmitted(true);
     if (!canSubmit) return;
     onSubmit({ role, remember, ...form });
   };
@@ -161,28 +186,18 @@ export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "appli
           placeholder="Enter your full name"
         />
 
-        {role === "applicant" ? (
-          <TextField
-            label="Policy Number"
-            icon={Hash}
-            type="text"
-            required
-            value={policyHolder.policyNumber}
-            onChange={(e) => setPolicyHolder({ ...policyHolder, policyNumber: e.target.value })}
-            placeholder="e.g. LDW/2026/12345"
-            hint="Found on your policy schedule or welcome letter."
-          />
-        ) : (
+        {role === "applicant" ? null : (
           <>
-            <TextField
-              label="Organization Name"
-              icon={Building2}
-              type="text"
-              required
-              value={adjuster.orgName}
-              onChange={(e) => setAdjuster({ ...adjuster, orgName: e.target.value })}
-              placeholder="e.g. Right Track Insurance Ltd"
-            />
+            <label className="block">
+              <span className="text-xs font-semibold text-ink-700 mb-1.5 block">Insurer / Organization</span>
+              <div className="relative">
+                <Building2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-300" />
+                <select value={adjuster.orgName} onChange={(e) => setAdjuster({ ...adjuster, orgName: e.target.value })} className="input pl-9" required>
+                  {INSURERS.map((i) => <option key={i}>{i}</option>)}
+                </select>
+              </div>
+              <span className="text-[11px] text-ink-400 mt-1 block">The insurer you'll be reviewing claims for.</span>
+            </label>
             <TextField
               label="Adjuster License / Staff ID"
               icon={BadgeCheck}
@@ -213,6 +228,9 @@ export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "appli
                 hint="Required for registered organizations — Corporate Affairs Commission number."
               />
             )}
+            <p className="text-[11px] text-ink-400 -mt-1">
+              Your License/Staff ID and CAC number are reviewed by a Super Admin before your account is activated. This usually takes 1–2 business days.
+            </p>
           </>
         )}
 
@@ -248,7 +266,14 @@ export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "appli
           <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="rounded border-ink-900/20" />
           Remember me
         </label>
-        <button type="submit" disabled={!canSubmit || loading} className="btn-primary w-full disabled:opacity-40 disabled:cursor-not-allowed">
+
+        {submitted && errors.length > 0 && (
+          <div className="text-xs font-medium text-red-600 bg-red-50 ring-1 ring-red-200 rounded-lg px-3 py-2 space-y-1">
+            {errors.map((err) => <p key={err}>{err}</p>)}
+          </div>
+        )}
+
+        <button type="submit" disabled={loading} className="btn-primary w-full disabled:opacity-40 disabled:cursor-not-allowed">
           {loading ? "Creating account…" : `Sign up as ${role === "applicant" ? "Policy Holder" : "Adjuster"}`}
         </button>
         <div className="flex items-center gap-3 text-xs text-ink-300"><div className="h-px bg-ink-900/10 flex-1" />OR<div className="h-px bg-ink-900/10 flex-1" /></div>
@@ -263,7 +288,8 @@ export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "appli
 
 export function Login({ onSubmit, onGoSignup, onGoSuperAdmin, onForgotPassword, onGoogleAuth, loading, error }) {
   const [role, setRole] = useState("applicant");
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({ email: "", password: "", orgName: INSURERS[0] });
+  const [remember, setRemember] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const canSubmit = form.email.includes("@") && form.password.length > 0 && !loading;
 
@@ -282,7 +308,18 @@ export function Login({ onSubmit, onGoSignup, onGoSuperAdmin, onForgotPassword, 
         <RoleToggle value={role} onChange={setRole} />
       </div>
 
-      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); if (canSubmit) onSubmit({ role, ...form }); }}>
+      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); if (canSubmit) onSubmit({ role, remember, ...form }); }}>
+        {role === "admin" && (
+          <label className="block">
+            <span className="text-xs font-semibold text-ink-700 mb-1.5 block">Insurer / Organization</span>
+            <div className="relative">
+              <Building2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-300" />
+              <select value={form.orgName} onChange={(e) => setForm({ ...form, orgName: e.target.value })} className="input pl-9">
+                {INSURERS.map((i) => <option key={i}>{i}</option>)}
+              </select>
+            </div>
+          </label>
+        )}
         <TextField
           label="Email Address"
           icon={Mail}
@@ -301,7 +338,13 @@ export function Login({ onSubmit, onGoSignup, onGoSuperAdmin, onForgotPassword, 
           onChange={(e) => setForm({ ...form, password: e.target.value })}
           placeholder="Enter your password"
         />
-        <div className="text-right -mt-2"><button type="button" onClick={onForgotPassword} className="text-xs font-semibold text-bearing-600 hover:underline">Forgotten password?</button></div>
+        <div className="flex items-center justify-between -mt-2">
+          <label className="flex items-center gap-2 text-xs text-ink-500">
+            <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="rounded border-ink-900/20" />
+            Remember me
+          </label>
+          <button type="button" onClick={onForgotPassword} className="text-xs font-semibold text-bearing-600 hover:underline">Forgotten password?</button>
+        </div>
         {error && <p className="text-xs font-medium text-red-600 bg-red-50 ring-1 ring-red-200 rounded-lg px-3 py-2">{error}</p>}
         <button type="submit" disabled={!canSubmit} className="btn-primary w-full disabled:opacity-40 disabled:cursor-not-allowed">
           {loading ? "Checking…" : `Log in as ${role === "applicant" ? "Policy Holder" : "Adjuster"}`}

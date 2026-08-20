@@ -12,6 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
+app.use("/api/admin", require("./routes/adminRoutes"));
 
 app.get("/", (req, res) => {
   res.send("RightTrack API is running.");

@@ -1,9 +1,96 @@
-import { useState } from "react";
-import { Search, Mail, Phone, MessageSquare, Ban, CheckCircle2, Star, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Search, Mail, Phone, MessageSquare, Ban, CheckCircle2, Star, Plus, BadgeCheck, Building2, Hash } from "lucide-react";
 import { Card, Modal, Field } from "../../components/UI.jsx";
 import MessageModal from "../../components/MessageModal.jsx";
 import { ADJUSTER_STATUS_META } from "../../lib/constants.js";
 import { slaInfo, fmtDate } from "../../lib/helpers.js";
+import { listPendingAdjustersRequest, approveAdjusterRequest, rejectAdjusterRequest } from "../../lib/api.js";
+
+function PendingAdjusters({ pushToast }) {
+  const [pending, setPending] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [rejecting, setRejecting] = useState(null);
+  const [note, setNote] = useState("");
+
+  const load = () => {
+    setLoading(true);
+    listPendingAdjustersRequest()
+      .then((res) => setPending(res.adjusters))
+      .catch((err) => pushToast({ type: "warn", title: "Couldn't load pending adjusters", body: err.message }))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleApprove = async (a) => {
+    try {
+      await approveAdjusterRequest(a._id);
+      pushToast({ type: "success", title: "Adjuster approved", body: `${a.fullName} can now log in.` });
+      setPending((prev) => prev.filter((x) => x._id !== a._id));
+    } catch (err) {
+      pushToast({ type: "warn", title: "Approval failed", body: err.message });
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejecting) return;
+    try {
+      await rejectAdjusterRequest(rejecting._id, note);
+      pushToast({ type: "warn", title: "Adjuster rejected", body: `${rejecting.fullName} was notified.` });
+      setPending((prev) => prev.filter((x) => x._id !== rejecting._id));
+      setRejecting(null);
+      setNote("");
+    } catch (err) {
+      pushToast({ type: "warn", title: "Rejection failed", body: err.message });
+    }
+  };
+
+  if (loading) return null;
+  if (pending.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <h2 className="font-display text-lg font-semibold text-navy-900">Pending Adjuster Verifications</h2>
+        <p className="text-ink-500 text-sm mt-0.5">Check each Staff ID and CAC number, then approve or reject.</p>
+      </div>
+      <div className="grid md:grid-cols-2 gap-4">
+        {pending.map((a) => (
+          <Card key={a._id} className="p-5 ring-1 ring-amber-200 bg-amber-50/40">
+            <p className="font-display font-semibold text-navy-900">{a.fullName}</p>
+            <p className="text-xs text-ink-500">{a.email}</p>
+            <div className="mt-3 space-y-1.5 text-xs text-ink-700">
+              <p className="flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5 text-ink-400" />{a.orgName || "—"}</p>
+              <p className="flex items-center gap-1.5"><BadgeCheck className="w-3.5 h-3.5 text-ink-400" />License/Staff ID: <span className="font-semibold">{a.licenseNumber || "—"}</span></p>
+              {a.isRegisteredOrg && (
+                <p className="flex items-center gap-1.5"><Hash className="w-3.5 h-3.5 text-ink-400" />CAC: <span className="font-semibold">{a.cac || "—"}</span></p>
+              )}
+              <p className="text-ink-400">Applied {fmtDate(a.createdAt)}</p>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button onClick={() => setRejecting(a)} className="flex-1 text-xs py-2 rounded-xl font-semibold bg-red-50 text-red-700 hover:bg-red-100">Reject</button>
+              <button onClick={() => handleApprove(a)} className="flex-1 text-xs py-2 rounded-xl font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100">Approve</button>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <Modal open={!!rejecting} onClose={() => { setRejecting(null); setNote(""); }}>
+        <div className="p-6">
+          <p className="font-display font-semibold text-navy-900 text-lg">Reject {rejecting?.fullName}</p>
+          <p className="text-xs text-ink-500 mt-1">Optionally tell them why — this is shown if they try to log in.</p>
+          <Field label="Reason (optional)">
+            <textarea className="input" rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. License number could not be verified" />
+          </Field>
+          <div className="flex gap-3 pt-3">
+            <button type="button" onClick={() => { setRejecting(null); setNote(""); }} className="btn-ghost flex-1">Cancel</button>
+            <button type="button" onClick={handleReject} className="flex-1 rounded-xl font-semibold bg-red-600 text-white py-2.5 hover:bg-red-700">Confirm Reject</button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}
 
 export default function SuperAdminAdjusters({ adjusters, claims, onToggleStatus, onAddAdjuster, pushToast }) {
   const [q, setQ] = useState("");
@@ -41,6 +128,8 @@ export default function SuperAdminAdjusters({ adjusters, claims, onToggleStatus,
         </div>
         <button onClick={() => setInviting(true)} className="btn-primary text-sm"><Plus className="w-4 h-4" />Invite Adjuster</button>
       </div>
+
+      <PendingAdjusters pushToast={pushToast} />
 
       <Card className="p-4">
         <div className="relative">

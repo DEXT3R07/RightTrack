@@ -4,7 +4,11 @@ const userSchema = new mongoose.Schema(
   {
     fullName: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: { type: String, required: true }, // stored as bcrypt hash
+    password: {
+      type: String,
+      required: function () { return !this.isGoogleAccount; }, // Google accounts don't set a password
+    },
+    isGoogleAccount: { type: Boolean, default: false },
 
     role: { type: String, enum: ["applicant", "admin", "superadmin"], default: "applicant" },
 
@@ -22,6 +26,14 @@ const userSchema = new mongoose.Schema(
     otpExpiresAt: { type: Date, default: null },
     otpAttempts: { type: Number, default: 0 },
     isVerified: { type: Boolean, default: false },
+
+    // --- Adjuster verification (Super Admin manually reviews License/CAC) ---
+    verificationStatus: {
+      type: String,
+      enum: ["not_required", "pending", "approved", "rejected"],
+      default: function () { return this.role === "admin" ? "pending" : "not_required"; },
+    },
+    verificationNote: { type: String, default: "" }, // optional reason if rejected
   },
   { timestamps: true }
 );

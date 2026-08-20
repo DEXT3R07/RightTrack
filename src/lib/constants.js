@@ -23,6 +23,14 @@ export const REJECTION_CODES = [
 
 export const RATING_TAGS = ["Fast Payout", "Clear Communication", "Easy Process", "Unhelpful Reason", "Slow Response", "Fair Decision"];
 
+export const INSURERS = [
+  "Anchorline Insurance",
+  "Beacon Trust Assurance",
+  "Meridian General Insurance",
+  "Coral Bay Assurance",
+  "Sterling Vale Insurance",
+];
+
 export const ACCEPTED_TYPES = ["application/pdf", "image/png", "image/jpeg"];
 export const MAX_SIZE_MB = 10;
 
