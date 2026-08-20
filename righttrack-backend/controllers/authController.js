@@ -17,6 +17,7 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
  * signup -> VerifyEmail -> enterApp, so this just creates the user record.
  */
 async function signup(req, res) {
+  console.log("SIGNUP endpoint hit. Body:", req.body);
   try {
     const { role, fullName, email, password, policyNumber, orgName, isRegisteredOrg, cac, licenseNumber } = req.body;
 
@@ -24,10 +25,14 @@ async function signup(req, res) {
       return res.status(400).json({ message: "Full name, email, and password are required." });
     }
 
-    const existing = await User.findOne({ email: email.toLowerCase().trim() });
+    const normalizedEmail = email.toLowerCase().trim();
+    console.log("Checking for existing user with normalized email:", normalizedEmail);
+    const existing = await User.findOne({ email: normalizedEmail });
     if (existing) {
+      console.log("Found existing account:", existing.email, "| id:", existing._id);
       return res.status(409).json({ message: "An account with this email already exists." });
     }
+    console.log("No existing account found — proceeding to create.");
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
