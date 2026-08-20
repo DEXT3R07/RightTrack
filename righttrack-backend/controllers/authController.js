@@ -277,6 +277,16 @@ async function googleAuth(req, res) {
       await user.save();
     }
 
+    // If the person picked a different account type on screen than what
+    // this email is actually registered as, stop and explain — don't
+    // silently drop them into the wrong dashboard.
+    if (role && user.role !== "superadmin" && role !== user.role) {
+      const roleLabel = { applicant: "Policy Holder", admin: "Adjuster" };
+      return res.status(409).json({
+        message: `This Google account is already registered as a ${roleLabel[user.role] || user.role}, not a ${roleLabel[role] || role}. Please switch tabs and log in as the correct account type, or use a different email to sign up as a ${roleLabel[role] || role}.`,
+      });
+    }
+
     if (user.verificationStatus === "pending") {
       return res.status(403).json({ message: "Your adjuster account is still awaiting Super Admin approval. This usually takes 1–2 business days." });
     }
