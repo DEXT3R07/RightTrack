@@ -1,4 +1,4 @@
-export const NOW = new Date("2026-08-11T14:20:00");
+export const NOW = new Date();
 
 export const fmtMoney = (n) => "₦" + Number(n).toLocaleString("en-NG", { minimumFractionDigits: 0 });
 export const fmtDate = (d) =>
