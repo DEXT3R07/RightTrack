@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
 const { generateOtp, hashOtp, verifyOtp } = require("../utils/otp");
-const { sendOtpEmail } = require("../utils/sendEmail");
+const { sendOtpEmail, sendPasswordResetEmail } = require("../utils/sendEmail");
 
 const OTP_EXPIRY_MINUTES = 5;
 const MAX_OTP_ATTEMPTS = 5;
@@ -301,4 +301,127 @@ async function googleAuth(req, res) {
   }
 }
 
-module.exports = { signup, login, verifyOtpHandler, resendOtp, me, googleAuth };
+/**
+ * POST /api/auth/forgot-password
+ * Body: { email }
+ * Generates + emails an OTP for resetting the password. Always responds
+ * with a generic success message, even if the email isn't registered —
+ * this avoids revealing which emails have accounts.
+ */
+async function forgotPassword(req, res) {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: "Email is required." });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+
+    if (user) {
+      const otp = generateOtp();
+      user.otpHash = hashOtp(otp);
+      user.otpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+      user.otpAttempts = 0;
+      await user.save();
+      await sendPasswordResetEmail(user.email, otp);
+    }
+
+    // Same response whether or not the account exists.
+    return res.status(200).json({ message: "If an account exists for that email, a reset code has been sent." });
+  } catch (err) {
+    console.error("Forgot password error:", err);
+    return res.status(500).json({ message: "Something went wrong. Please try again." });
+  }
+}
+
+/**
+ * POST /api/auth/verify-reset-otp
+ * Body: { email, otp }
+ * Checks the OTP is valid WITHOUT clearing it yet — the person still needs
+ * to submit a new password next, which re-checks the same code.
+ */
+async function verifyResetOtp(req, res) {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required." });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user || !user.otpHash || !user.otpExpiresAt) {
+      return res.status(400).json({ message: "No pending password reset for this account." });
+    }
+
+    if (user.otpExpiresAt < new Date()) {
+      user.otpHash = null;
+      user.otpExpiresAt = null;
+      await user.save();
+      return res.status(400).json({ message: "Code has expired. Please request a new one." });
+    }
+
+    if (user.otpAttempts >= MAX_OTP_ATTEMPTS) {
+      user.otpHash = null;
+      user.otpExpiresAt = null;
+      await user.save();
+      return res.status(429).json({ message: "Too many failed attempts. Please request a new code." });
+    }
+
+    if (!verifyOtp(otp, user.otpHash)) {
+      user.otpAttempts += 1;
+      await user.save();
+      return res.status(400).json({ message: "Incorrect code. Please try again." });
+    }
+
+    return res.status(200).json({ message: "Code verified." });
+  } catch (err) {
+    console.error("Verify reset OTP error:", err);
+    return res.status(500).json({ message: "Something went wrong. Please try again." });
+  }
+}
+
+/**
+ * POST /api/auth/reset-password
+ * Body: { email, otp, newPassword }
+ * Re-checks the OTP (same as verify-reset-otp) and, if still valid,
+ * updates the password and clears the OTP fields.
+ */
+async function resetPassword(req, res) {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ message: "Email, code, and new password are required." });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters." });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user || !user.otpHash || !user.otpExpiresAt) {
+      return res.status(400).json({ message: "No pending password reset for this account." });
+    }
+    if (user.otpExpiresAt < new Date()) {
+      user.otpHash = null;
+      user.otpExpiresAt = null;
+      await user.save();
+      return res.status(400).json({ message: "Code has expired. Please request a new one." });
+    }
+    if (!verifyOtp(otp, user.otpHash)) {
+      user.otpAttempts += 1;
+      await user.save();
+      return res.status(400).json({ message: "Incorrect code. Please try again." });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.otpHash = null;
+    user.otpExpiresAt = null;
+    user.otpAttempts = 0;
+    await user.save();
+
+    return res.status(200).json({ message: "Password reset successful. You can now log in." });
+  } catch (err) {
+    console.error("Reset password error:", err);
+    return res.status(500).json({ message: "Something went wrong. Please try again." });
+  }
+}
+
+module.exports = { signup, login, verifyOtpHandler, resendOtp, me, googleAuth, forgotPassword, verifyResetOtp, resetPassword };

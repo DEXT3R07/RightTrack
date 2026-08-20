@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { signup, login, verifyOtpHandler, resendOtp, me, googleAuth } = require("../controllers/authController");
+const { signup, login, verifyOtpHandler, resendOtp, me, googleAuth, forgotPassword, verifyResetOtp, resetPassword } = require("../controllers/authController");
 const { requireAuth } = require("../middleware/auth");
 
 // POST /api/auth/signup       -> creates the account
@@ -20,5 +20,14 @@ router.post("/resend-otp", resendOtp);
 
 // GET  /api/auth/me           -> returns current user if token is valid
 router.get("/me", requireAuth, me);
+
+// POST /api/auth/forgot-password   -> sends a password reset OTP
+router.post("/forgot-password", forgotPassword);
+
+// POST /api/auth/verify-reset-otp  -> checks the reset OTP is valid
+router.post("/verify-reset-otp", verifyResetOtp);
+
+// POST /api/auth/reset-password    -> sets a new password after OTP check
+router.post("/reset-password", resetPassword);
 
 module.exports = router;

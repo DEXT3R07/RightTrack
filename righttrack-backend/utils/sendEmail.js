@@ -1,33 +1,19 @@
-const nodemailer = require("nodemailer");
+// Sends email via Brevo's HTTP API instead of raw SMTP. Render's free tier
+// blocks outbound SMTP ports (25/465/587) to prevent spam abuse, so
+// Nodemailer + Gmail SMTP doesn't work there. Brevo's API runs over normal
+// HTTPS (port 443), which isn't blocked.
 
-// Configure via .env — works with Gmail (app password), SendGrid SMTP,
-// or any standard SMTP provider. Swap values in .env, no code changes needed.
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,       // e.g. smtp.gmail.com
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: process.env.SMTP_PORT === "465", // true for port 465, false for others
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
-
-// Verify the SMTP connection once at startup so config problems show up
-// immediately in the terminal instead of failing silently later.
-transporter.verify((err) => {
-  if (err) {
-    console.error("SMTP configuration error:", err.message);
-  } else {
-    console.log("SMTP server is ready to send emails");
-  }
-});
+const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
 async function sendOtpEmail(toEmail, otp) {
-  const mailOptions = {
-    from: `"Right Track OTP" <${process.env.SMTP_USER}>`,
-    to: toEmail,
+  const payload = {
+    sender: {
+      name: "RightTrack",
+      email: process.env.BREVO_SENDER_EMAIL, // must be a verified sender in Brevo
+    },
+    to: [{ email: toEmail }],
     subject: "Your RightTrack verification code",
-    html: `
+    htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">
         <h2 style="color: #0B2545;">RightTrack Verification</h2>
         <p>Use the code below to complete your login. This code expires in 5 minutes.</p>
@@ -39,9 +25,66 @@ async function sendOtpEmail(toEmail, otp) {
     `,
   };
 
-  const info = await transporter.sendMail(mailOptions);
-  console.log(`OTP email sent to ${toEmail} — messageId: ${info.messageId}, response: ${info.response}`);
-  return info;
+  const res = await fetch(BREVO_API_URL, {
+    method: "POST",
+    headers: {
+      "api-key": process.env.BREVO_API_KEY,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    console.error("Brevo send error:", res.status, data);
+    throw new Error(data.message || "Failed to send verification email.");
+  }
+
+  console.log(`OTP email sent to ${toEmail} via Brevo — messageId: ${data.messageId}`);
+  return data;
 }
 
-module.exports = { sendOtpEmail };
+async function sendPasswordResetEmail(toEmail, otp) {
+  const payload = {
+    sender: {
+      name: "RightTrack",
+      email: process.env.BREVO_SENDER_EMAIL,
+    },
+    to: [{ email: toEmail }],
+    subject: "Your RightTrack password reset code",
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">
+        <h2 style="color: #0B2545;">Reset your RightTrack password</h2>
+        <p>Use the code below to reset your password. This code expires in 5 minutes.</p>
+        <p style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #0B2545; background: #E8F6F1; padding: 16px; text-align: center; border-radius: 8px;">
+          ${otp}
+        </p>
+        <p style="color: #667085; font-size: 13px;">If you didn't request this, you can safely ignore this email — your password will not be changed.</p>
+      </div>
+    `,
+  };
+
+  const res = await fetch(BREVO_API_URL, {
+    method: "POST",
+    headers: {
+      "api-key": process.env.BREVO_API_KEY,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    console.error("Brevo send error (password reset):", res.status, data);
+    throw new Error(data.message || "Failed to send password reset email.");
+  }
+
+  console.log(`Password reset email sent to ${toEmail} via Brevo — messageId: ${data.messageId}`);
+  return data;
+}
+
+module.exports = { sendOtpEmail, sendPasswordResetEmail };
