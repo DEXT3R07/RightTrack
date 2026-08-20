@@ -3,7 +3,7 @@ import { Check, ChevronRight, ArrowLeft, Star, MessageSquareText } from "lucide-
 import { Card, Field, Row } from "../../components/UI.jsx";
 import FileDrop from "../../components/FileDrop.jsx";
 import { CATEGORY_META, INSURERS } from "../../lib/constants.js";
-import { NOW, fmtMoney, uid, insurerRatingStats } from "../../lib/helpers.js";
+import { fmtMoney, insurerRatingStats } from "../../lib/helpers.js";
 
 function InsurerRatingPanel({ claims, insurer }) {
   if (!insurer) return null;
@@ -50,19 +50,15 @@ export default function NewClaimWizard({ claims, onSubmitClaim, pushToast }) {
   const canNext1 = form.fullName && form.policyId && form.insurer && form.amount && form.description.length > 10;
   const canNext2 = files.length > 0;
 
-  const submit = () => {
-    const ref = uid("CLM");
-    onSubmitClaim({
-      id: ref, applicant: form.fullName, policyId: form.policyId, insurer: form.insurer, category: form.category,
-      amount: Number(form.amount), description: form.description, submittedAt: NOW.toISOString(),
-      status: "submitted", documents: files,
-      history: [
-        { ts: NOW.toISOString().replace("Z", ".500000"), label: "Claim submitted", detail: `Submitted by applicant via web portal to ${form.insurer}` },
-        { ts: NOW.toISOString().replace("Z", ".812000"), label: "Document validation passed", detail: `${files.length} file(s) verified — format & size checks OK` },
-      ],
+  const submit = async () => {
+    const claimId = await onSubmitClaim({
+      policyId: form.policyId, insurer: form.insurer, category: form.category,
+      amount: Number(form.amount), description: form.description, documents: files,
     });
-    setRefId(ref);
-    setStep(5);
+    if (claimId) {
+      setRefId(claimId);
+      setStep(5);
+    }
   };
 
   return (

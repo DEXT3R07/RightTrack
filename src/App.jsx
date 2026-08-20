@@ -28,7 +28,7 @@ import { seedClaims, seedAdjusters, seedPolicyholders } from "./lib/data.js";
 import { NOW, fmtMoney, uid } from "./lib/helpers.js";
 import { PREMIUM_PRICE, PREMIUM_TRIAL_DAYS, SUPERADMIN_CREDENTIALS } from "./lib/constants.js";
 import { SiteNavContext } from "./lib/SiteNav.jsx";
-import { loginRequest, verifyOtpRequest, resendOtpRequest, signupRequest, meRequest, googleAuthRequest } from "./lib/api.js";
+import { loginRequest, verifyOtpRequest, resendOtpRequest, signupRequest, meRequest, googleAuthRequest, listClaimsRequest, createClaimRequest, reuploadRequest, rateClaimRequest, startReviewRequest, requestInfoRequest, decideClaimRequest } from "./lib/api.js";
 import { initGoogleSignIn, promptGoogleSignIn } from "./lib/googleAuth.js";
 
 export default function App() {
@@ -59,6 +59,14 @@ export default function App() {
   useEffect(() => {
     if (screen === "landing" && scrollTarget) return;
     window.scrollTo(0, 0);
+  }, [screen]);
+
+  // Load real claims from the backend once the person is inside the app.
+  useEffect(() => {
+    if (screen !== "app") return;
+    listClaimsRequest()
+      .then(({ claims }) => setClaims(claims))
+      .catch((err) => pushToast({ type: "warn", title: "Couldn't load claims", body: err.message }));
   }, [screen]);
 
   const pushToast = (t) => {
@@ -130,45 +138,66 @@ export default function App() {
 
   const openClaim = (id) => { setSelected(id); setView("detail"); };
 
-  const addClaim = (claimObj, refToOpen) => {
-    if (claimObj) { setClaims((prev) => [claimObj, ...prev]); pushToast({ type: "success", title: "Claim submitted", body: `Reference ${claimObj.id} created.` }); }
+  const addClaim = async (claimObj, refToOpen) => {
+    if (claimObj) {
+      try {
+        const { claim } = await createClaimRequest({
+          policyId: claimObj.policyId,
+          insurer: claimObj.insurer,
+          category: claimObj.category,
+          amount: claimObj.amount,
+          description: claimObj.description,
+          documents: claimObj.documents,
+        });
+        setClaims((prev) => [claim, ...prev]);
+        pushToast({ type: "success", title: "Claim submitted", body: `Reference ${claim.id} created.` });
+        return claim.id;
+      } catch (err) {
+        pushToast({ type: "warn", title: "Submission failed", body: err.message });
+        return null;
+      }
+    }
     if (refToOpen) { setSelected(refToOpen); setView("detail"); }
   };
 
-  const reupload = (id, files) => {
-    setClaims((prev) => prev.map((c) => c.id === id ? {
-      ...c, status: "under_review", documents: [...c.documents, ...files],
-      history: [...c.history,
-        { ts: NOW.toISOString().replace("Z", ".231000"), label: "Applicant re-uploaded document", detail: `${files.length} new file(s) submitted in response to flag` },
-        { ts: NOW.toISOString().replace("Z", ".402000"), label: "Status changed to Under Review", detail: "Returned to adjuster queue at same position" },
-      ],
-    } : c));
-    pushToast({ type: "success", title: "Document submitted", body: "Your claim is back under review." });
+  const reupload = async (id, files) => {
+    try {
+      const { claim } = await reuploadRequest(id, files);
+      setClaims((prev) => prev.map((c) => (c.id === id ? claim : c)));
+      pushToast({ type: "success", title: "Document submitted", body: "Your claim is back under review." });
+    } catch (err) {
+      pushToast({ type: "warn", title: "Couldn't submit document", body: err.message });
+    }
   };
 
-  const rate = (id, r) => {
-    setClaims((prev) => prev.map((c) => (c.id === id ? { ...c, rating: r } : c)));
-    pushToast({ type: "success", title: "Thanks for your feedback!" });
+  const rate = async (id, r) => {
+    try {
+      const { claim } = await rateClaimRequest(id, r.stars, r.review);
+      setClaims((prev) => prev.map((c) => (c.id === id ? claim : c)));
+      pushToast({ type: "success", title: "Thanks for your feedback!" });
+    } catch (err) {
+      pushToast({ type: "warn", title: "Couldn't submit rating", body: err.message });
+    }
   };
 
-  const startReview = (id) => {
-    const adjusterName = profile.fullName || "Assigned Adjuster";
-    setClaims((prev) => prev.map((c) => c.id === id ? {
-      ...c, status: "under_review", adjuster: adjusterName,
-      history: [...c.history,
-        { ts: NOW.toISOString().replace("Z", ".140000"), label: "Assigned to adjuster", detail: `Claim opened by ${adjusterName}` },
-        { ts: NOW.toISOString().replace("Z", ".141000"), label: "Status changed to Under Review", detail: "Review started" },
-      ],
-    } : c));
-    pushToast({ type: "success", title: `${id} moved to Under Review`, body: `Assigned to ${adjusterName}.` });
+  const startReview = async (id) => {
+    try {
+      const { claim } = await startReviewRequest(id);
+      setClaims((prev) => prev.map((c) => (c.id === id ? claim : c)));
+      pushToast({ type: "success", title: `${id} moved to Under Review`, body: `Assigned to ${claim.adjuster}.` });
+    } catch (err) {
+      pushToast({ type: "warn", title: "Couldn't start review", body: err.message });
+    }
   };
 
-  const decide = (id, status, { rejectionCode, notes } = {}) => {
-    setClaims((prev) => prev.map((c) => c.id === id ? {
-      ...c, status, rejectionCode, rejectionNotes: notes,
-      history: [...c.history, { ts: NOW.toISOString().replace("Z", ".550000"), label: `Decision recorded: ${status === "approved" ? "Approved" : "Rejected"}`, detail: notes || (status === "approved" ? "Approved in full" : "See rejection code") }],
-    } : c));
-    pushToast({ type: status === "approved" ? "success" : "warn", title: `${id} marked ${status}`, body: "Applicant view updated in real time." });
+  const decide = async (id, status, { rejectionCode, notes } = {}) => {
+    try {
+      const { claim } = await decideClaimRequest(id, status, rejectionCode, notes);
+      setClaims((prev) => prev.map((c) => (c.id === id ? claim : c)));
+      pushToast({ type: status === "approved" ? "success" : "warn", title: `${id} marked ${status}`, body: "Applicant view updated in real time." });
+    } catch (err) {
+      pushToast({ type: "warn", title: "Couldn't record decision", body: err.message });
+    }
   };
 
   const startTrial = () => {
@@ -201,15 +230,14 @@ export default function App() {
     setAdjusters((prev) => [...prev, { id: uid("ADJ"), status: "active", joinedAt: NOW.toISOString().slice(0, 10), ...form }]);
   };
 
-  const requestInfo = (id, notes) => {
-    setClaims((prev) => prev.map((c) => c.id === id ? {
-      ...c, status: "action_required", flagReason: notes,
-      history: [...c.history,
-        { ts: NOW.toISOString().replace("Z", ".118000"), label: "Adjuster flagged claim", detail: notes },
-        { ts: NOW.toISOString().replace("Z", ".119000"), label: "Status changed to Action Required", detail: "Applicant notified via email + SMS" },
-      ],
-    } : c));
-    pushToast({ type: "warn", title: `${id} flagged`, body: "Applicant has been notified to provide more info." });
+  const requestInfo = async (id, notes) => {
+    try {
+      const { claim } = await requestInfoRequest(id, notes);
+      setClaims((prev) => prev.map((c) => (c.id === id ? claim : c)));
+      pushToast({ type: "warn", title: `${id} flagged`, body: "Applicant has been notified to provide more info." });
+    } catch (err) {
+      pushToast({ type: "warn", title: "Couldn't flag claim", body: err.message });
+    }
   };
 
   const navAnchor = (id) => {
