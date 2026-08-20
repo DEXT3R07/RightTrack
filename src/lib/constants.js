@@ -29,6 +29,8 @@ export const INSURERS = [
   "Meridian General Insurance",
   "Coral Bay Assurance",
   "Sterling Vale Insurance",
+  "Nelfund Ltd",
+  "TetFund CO",
 ];
 
 export const ACCEPTED_TYPES = ["application/pdf", "image/png", "image/jpeg"];

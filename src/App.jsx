@@ -152,6 +152,18 @@ export default function App() {
     pushToast({ type: "success", title: "Thanks for your feedback!" });
   };
 
+  const startReview = (id) => {
+    const adjusterName = profile.fullName || "Assigned Adjuster";
+    setClaims((prev) => prev.map((c) => c.id === id ? {
+      ...c, status: "under_review", adjuster: adjusterName,
+      history: [...c.history,
+        { ts: NOW.toISOString().replace("Z", ".140000"), label: "Assigned to adjuster", detail: `Claim opened by ${adjusterName}` },
+        { ts: NOW.toISOString().replace("Z", ".141000"), label: "Status changed to Under Review", detail: "Review started" },
+      ],
+    } : c));
+    pushToast({ type: "success", title: `${id} moved to Under Review`, body: `Assigned to ${adjusterName}.` });
+  };
+
   const decide = (id, status, { rejectionCode, notes } = {}) => {
     setClaims((prev) => prev.map((c) => c.id === id ? {
       ...c, status, rejectionCode, rejectionNotes: notes,
@@ -285,6 +297,7 @@ export default function App() {
     );
   }
   if (screen === "login") {
+  if (screen === "login") {
     return (
       <Login
         onGoSignup={() => setScreen("signup")}
@@ -345,6 +358,10 @@ export default function App() {
       />
     );
   }
+=======
+    return <Login onGoSignup={() => setScreen("signup")} onSubmit={(form) => enterApp(form.role, { email: form.email, orgName: form.orgName })} onGoSuperAdmin={() => setScreen("superadmin-login")} onForgotPassword={() => setScreen("forgot-password")} onGoogleAuth={handleGoogleAuth} />;
+>>>>>>> 75e2ba9668a426444c6b46305916b86ee15a9b59
+  }
   if (screen === "forgot-password") {
     return <ForgotPassword onBack={() => setScreen("login")} onDone={() => setScreen("login")} />;
   }
@@ -353,7 +370,10 @@ export default function App() {
   }
 
   const selectedClaim = claims.find((c) => c.id === selected);
-  const notifCount = claims.filter((c) => c.status === "action_required").length;
+  const adjusterClaims = claims.filter((c) => c.insurer === profile.orgName);
+  const isOwnClaim = !selectedClaim || selectedClaim.insurer === profile.orgName;
+  const notifClaims = role === "admin" ? adjusterClaims : claims;
+  const notifCount = notifClaims.filter((c) => c.status === "action_required").length;
 
   let title = "Dashboard", subtitle = "";
   if (view === "new") title = "New Claim";
@@ -375,12 +395,12 @@ export default function App() {
         <Topbar title={title} subtitle={subtitle} role={role} plan={plan} onMenu={() => setMobileOpen(true)} notifCount={notifCount} onBell={() => setNotifOpen((o) => !o)} onSettings={() => setView("settings")} avatarUrl={profile.avatarUrl} profile={profile} />
         <main className="flex-1 p-4 sm:p-8">
           {role === "applicant" && view === "dashboard" && <ApplicantDashboard claims={claims} onNav={setView} onOpenClaim={openClaim} profile={profile} />}
-          {role === "applicant" && view === "new" && <NewClaimWizard onSubmitClaim={addClaim} pushToast={pushToast} />}
+          {role === "applicant" && view === "new" && <NewClaimWizard claims={claims} onSubmitClaim={addClaim} pushToast={pushToast} />}
           {role === "applicant" && view === "claims" && <MyClaims claims={claims} onOpenClaim={openClaim} onNav={setView} />}
           {role === "applicant" && view === "detail" && selectedClaim && <ClaimDetailApplicant claim={selectedClaim} onBack={() => setView("claims")} onReupload={reupload} onRate={rate} pushToast={pushToast} />}
-          {role === "admin" && view === "dashboard" && <AdminDashboard claims={claims} onOpenClaim={openClaim} profile={profile} />}
-          {role === "admin" && view === "queue" && <ClaimsQueue claims={claims} onOpenClaim={openClaim} plan={plan} onGoBilling={() => setView("billing")} pushToast={pushToast} />}
-          {role === "admin" && view === "detail" && selectedClaim && <ClaimReview claim={selectedClaim} onBack={() => setView("queue")} onDecision={decide} onRequestInfo={requestInfo} pushToast={pushToast} />}
+          {role === "admin" && view === "dashboard" && <AdminDashboard claims={adjusterClaims} onOpenClaim={openClaim} profile={profile} />}
+          {role === "admin" && view === "queue" && <ClaimsQueue claims={adjusterClaims} onOpenClaim={openClaim} plan={plan} onGoBilling={() => setView("billing")} pushToast={pushToast} insurer={profile.orgName} />}
+          {role === "admin" && view === "detail" && selectedClaim && isOwnClaim && <ClaimReview claim={selectedClaim} onBack={() => setView("queue")} onStartReview={startReview} onDecision={decide} onRequestInfo={requestInfo} pushToast={pushToast} />}
           {role === "admin" && view === "billing" && <Billing plan={plan} onUpgrade={upgradePlan} onDowngrade={downgradePlan} onStartTrial={startTrial} />}
           {role === "superadmin" && view === "sa-dashboard" && <SuperAdminDashboard claims={claims} adjusters={adjusters} policyholders={policyholders} onOpenClaim={openClaim} onNav={setView} />}
           {role === "superadmin" && view === "sa-claims" && <SuperAdminClaims claims={claims} adjusters={adjusters} onOpenClaim={openClaim} />}
@@ -392,7 +412,7 @@ export default function App() {
         </main>
       </div>
       <Toast toasts={toasts} />
-      <NotifPanel open={notifOpen} onClose={() => setNotifOpen(false)} claims={claims} />
+      <NotifPanel open={notifOpen} onClose={() => setNotifOpen(false)} claims={notifClaims} />
     </div>
   );
 }

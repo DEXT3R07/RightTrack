@@ -4,7 +4,7 @@ import { Card, StatusPill, SlaBadge, PremiumBadge } from "../../components/UI.js
 import { CATEGORY_META, STATUS_META, isPremiumPlan } from "../../lib/constants.js";
 import { slaInfo, fmtDate, fmtMoney } from "../../lib/helpers.js";
 
-export default function ClaimsQueue({ claims, onOpenClaim, plan = "free", onGoBilling, pushToast }) {
+export default function ClaimsQueue({ claims, onOpenClaim, plan = "free", onGoBilling, pushToast, insurer }) {
   const [q, setQ] = useState("");
   const [statusF, setStatusF] = useState("all");
   const [sortBy, setSortBy] = useState("urgency");
@@ -13,7 +13,7 @@ export default function ClaimsQueue({ claims, onOpenClaim, plan = "free", onGoBi
   let rows = claims.filter(
     (c) =>
       (statusF === "all" || c.status === statusF) &&
-      (c.id.toLowerCase().includes(q.toLowerCase()) || c.applicant.toLowerCase().includes(q.toLowerCase()) || c.policyId.toLowerCase().includes(q.toLowerCase()))
+      (c.id.toLowerCase().includes(q.toLowerCase()) || c.applicant.toLowerCase().includes(q.toLowerCase()) || c.policyId.toLowerCase().includes(q.toLowerCase()) || (c.insurer || "").toLowerCase().includes(q.toLowerCase()))
   );
   rows = rows.map((c) => ({ c, s: slaInfo(c) }));
   rows.sort((a, b) => {
@@ -33,8 +33,8 @@ export default function ClaimsQueue({ claims, onOpenClaim, plan = "free", onGoBi
       onGoBilling?.();
       return;
     }
-    const header = ["Claim ID", "Policyholder", "Policy No.", "Category", "Amount", "Status", "Submitted"];
-    const lines = rows.map(({ c }) => [c.id, c.applicant, c.policyId, c.category, c.amount, STATUS_META[c.status].label, fmtDate(c.submittedAt)]);
+    const header = ["Claim ID", "Policyholder", "Policy No.", "Insurer", "Category", "Amount", "Status", "Submitted"];
+    const lines = rows.map(({ c }) => [c.id, c.applicant, c.policyId, c.insurer, c.category, c.amount, STATUS_META[c.status].label, fmtDate(c.submittedAt)]);
     const csv = [header, ...lines].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -48,7 +48,10 @@ export default function ClaimsQueue({ claims, onOpenClaim, plan = "free", onGoBi
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="font-display text-2xl font-semibold text-navy-900">Priority Queue</h1>
+        <div>
+          <h1 className="font-display text-2xl font-semibold text-navy-900">Priority Queue</h1>
+          {insurer && <p className="text-xs text-ink-500 mt-0.5">Showing claims routed to <span className="font-semibold text-navy-900">{insurer}</span></p>}
+        </div>
         <div className="flex items-center gap-3">
           <p className="text-xs text-ink-500">{rows.filter((r) => r.s.breached).length} breached · {rows.length} total</p>
           <button
@@ -82,7 +85,7 @@ export default function ClaimsQueue({ claims, onOpenClaim, plan = "free", onGoBi
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[11px] font-bold uppercase text-ink-500 border-b border-ink-900/6">
-                <th className="px-5 py-3">Claim</th><th className="px-5 py-3">Policyholder</th><th className="px-5 py-3">Category</th>
+                <th className="px-5 py-3">Claim</th><th className="px-5 py-3">Policyholder</th><th className="px-5 py-3">Insurer</th><th className="px-5 py-3">Category</th>
                 <th className="px-5 py-3">Amount</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">SLA</th><th className="px-5 py-3"></th>
               </tr>
             </thead>
@@ -94,6 +97,7 @@ export default function ClaimsQueue({ claims, onOpenClaim, plan = "free", onGoBi
                     <p className="text-xs text-ink-500">{fmtDate(c.submittedAt)}</p>
                   </td>
                   <td className="px-5 py-3.5 text-ink-700">{c.applicant}<br /><span className="text-xs text-ink-300">{c.policyId}</span></td>
+                  <td className="px-5 py-3.5 text-ink-700">{c.insurer}</td>
                   <td className="px-5 py-3.5"><span className="text-xs font-bold px-2 py-1 rounded-md" style={{ background: CATEGORY_META[c.category].bg, color: CATEGORY_META[c.category].color }}>{c.category}</span></td>
                   <td className="px-5 py-3.5 font-medium text-navy-900 num">{fmtMoney(c.amount)}</td>
                   <td className="px-5 py-3.5"><StatusPill status={c.status} /></td>
@@ -104,7 +108,7 @@ export default function ClaimsQueue({ claims, onOpenClaim, plan = "free", onGoBi
                 </tr>
               ))}
               {rows.length === 0 && (
-                <tr><td colSpan={7} className="px-5 py-10 text-center text-sm text-ink-500">No claims in the queue yet.</td></tr>
+                <tr><td colSpan={8} className="px-5 py-10 text-center text-sm text-ink-500">No claims in the queue yet.</td></tr>
               )}
             </tbody>
           </table>

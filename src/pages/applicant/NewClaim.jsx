@@ -1,28 +1,63 @@
 import { useState } from "react";
-import { Check, ChevronRight, ArrowLeft } from "lucide-react";
+import { Check, ChevronRight, ArrowLeft, Star, MessageSquareText } from "lucide-react";
 import { Card, Field, Row } from "../../components/UI.jsx";
 import FileDrop from "../../components/FileDrop.jsx";
-import { CATEGORY_META } from "../../lib/constants.js";
-import { NOW, fmtMoney, uid } from "../../lib/helpers.js";
+import { CATEGORY_META, INSURERS } from "../../lib/constants.js";
+import { NOW, fmtMoney, uid, insurerRatingStats } from "../../lib/helpers.js";
 
-export default function NewClaimWizard({ onSubmitClaim, pushToast }) {
+function InsurerRatingPanel({ claims, insurer }) {
+  if (!insurer) return null;
+  const stats = insurerRatingStats(claims, insurer);
+  return (
+    <div className="mt-3 rounded-xl bg-navy-50/70 ring-1 ring-navy-900/6 px-4 py-3.5">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold text-navy-900">{insurer}</p>
+        {stats.count > 0 ? (
+          <span className="inline-flex items-center gap-1 text-sm font-semibold text-navy-900 num">
+            <Star className="w-4 h-4 text-brass-500" fill="currentColor" />{stats.avg.toFixed(1)}
+            <span className="text-xs text-ink-500 font-normal">({stats.count} rating{stats.count === 1 ? "" : "s"})</span>
+          </span>
+        ) : (
+          <span className="text-xs text-ink-400">No ratings yet</span>
+        )}
+      </div>
+      {stats.reviews.length > 0 && (
+        <div className="mt-2.5 pt-2.5 border-t border-navy-900/6 space-y-2">
+          {stats.reviews.slice(0, 3).map((r, i) => (
+            <div key={i} className="text-xs">
+              <div className="flex items-center gap-1">
+                {Array.from({ length: 5 }).map((_, s) => <Star key={s} className={`w-3 h-3 ${s < r.stars ? "text-brass-500" : "text-ink-900/10"}`} fill="currentColor" />)}
+              </div>
+              <p className="text-ink-600 mt-0.5">"{r.review}"</p>
+            </div>
+          ))}
+        </div>
+      )}
+      {stats.count === 0 && (
+        <p className="text-xs text-ink-500 mt-1.5 inline-flex items-center gap-1.5"><MessageSquareText className="w-3.5 h-3.5" />Be the first to rate this insurer once your claim is resolved.</p>
+      )}
+    </div>
+  );
+}
+
+export default function NewClaimWizard({ claims, onSubmitClaim, pushToast }) {
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ fullName: "", policyId: "", category: "Health", amount: "", description: "" });
+  const [form, setForm] = useState({ fullName: "", policyId: "", insurer: "", category: "Health", amount: "", description: "" });
   const [files, setFiles] = useState([]);
   const [refId, setRefId] = useState(null);
   const steps = ["Claim Details", "Upload Documents", "Review & Confirm", "Submit Claim"];
 
-  const canNext1 = form.fullName && form.policyId && form.amount && form.description.length > 10;
+  const canNext1 = form.fullName && form.policyId && form.insurer && form.amount && form.description.length > 10;
   const canNext2 = files.length > 0;
 
   const submit = () => {
     const ref = uid("CLM");
     onSubmitClaim({
-      id: ref, applicant: form.fullName, policyId: form.policyId, category: form.category,
+      id: ref, applicant: form.fullName, policyId: form.policyId, insurer: form.insurer, category: form.category,
       amount: Number(form.amount), description: form.description, submittedAt: NOW.toISOString(),
       status: "submitted", documents: files,
       history: [
-        { ts: NOW.toISOString().replace("Z", ".500000"), label: "Claim submitted", detail: "Submitted by applicant via web portal" },
+        { ts: NOW.toISOString().replace("Z", ".500000"), label: "Claim submitted", detail: `Submitted by applicant via web portal to ${form.insurer}` },
         { ts: NOW.toISOString().replace("Z", ".812000"), label: "Document validation passed", detail: `${files.length} file(s) verified — format & size checks OK` },
       ],
     });
@@ -60,6 +95,13 @@ export default function NewClaimWizard({ onSubmitClaim, pushToast }) {
           <div className="grid sm:grid-cols-2 gap-4">
             <Field label="Full Name"><input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} placeholder="e.g. Dexter Echo" className="input" /></Field>
             <Field label="Entity / Policy ID"><input value={form.policyId} onChange={(e) => setForm({ ...form, policyId: e.target.value })} placeholder="e.g. LDW/2026/12345" className="input" /></Field>
+            <Field label="Insurer" full>
+              <select value={form.insurer} onChange={(e) => setForm({ ...form, insurer: e.target.value })} className="input">
+                <option value="" disabled>Select the insurer on your policy</option>
+                {INSURERS.map((i) => <option key={i}>{i}</option>)}
+              </select>
+              <InsurerRatingPanel claims={claims} insurer={form.insurer} />
+            </Field>
             <Field label="Claim Category">
               <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="input">
                 {Object.keys(CATEGORY_META).map((c) => <option key={c}>{c}</option>)}
@@ -96,7 +138,7 @@ export default function NewClaimWizard({ onSubmitClaim, pushToast }) {
             <div>
               <p className="text-xs font-bold uppercase text-ink-500 mb-2">Claim Details</p>
               <dl className="text-sm space-y-2">
-                <Row k="Full Name" v={form.fullName} /><Row k="Policy ID" v={form.policyId} /><Row k="Category" v={form.category} />
+                <Row k="Full Name" v={form.fullName} /><Row k="Policy ID" v={form.policyId} /><Row k="Insurer" v={form.insurer} /><Row k="Category" v={form.category} />
                 <Row k="Amount" v={fmtMoney(form.amount || 0)} />
               </dl>
               <p className="text-xs font-bold uppercase text-ink-500 mt-4 mb-1.5">Description</p>
@@ -151,6 +193,7 @@ export default function NewClaimWizard({ onSubmitClaim, pushToast }) {
           <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto"><Check className="w-6 h-6" /></div>
           <p className="font-display text-xl font-semibold text-navy-900 mt-4">Claim Submitted Successfully!</p>
           <p className="text-sm text-ink-500 mt-1">Your claim has been received and is now being processed.</p>
+          <p className="text-xs text-ink-500 mt-1">Routed to <span className="font-semibold text-navy-900">{form.insurer}</span>.</p>
           <div className="grid grid-cols-3 gap-4 mt-6 max-w-md mx-auto">
             <div><p className="text-[11px] text-ink-500">Reference ID</p><p className="font-mono font-semibold text-navy-900 text-sm">{refId}</p></div>
             <div><p className="text-[11px] text-ink-500">Status</p><p className="font-semibold text-emerald-600 text-sm">Submitted</p></div>

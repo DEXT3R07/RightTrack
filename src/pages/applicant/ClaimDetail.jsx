@@ -4,13 +4,18 @@ import { Card } from "../../components/UI.jsx";
 import { BearingTracker } from "../../components/BearingTracker.jsx";
 import FileDrop from "../../components/FileDrop.jsx";
 import RatingModal from "./RatingModal.jsx";
-import { CATEGORY_META } from "../../lib/constants.js";
-import { fmtDateTime, fmtMoney } from "../../lib/helpers.js";
+import { CATEGORY_META, STATUS_META } from "../../lib/constants.js";
+import { fmtDateTime, fmtMoney, downloadClaimReport } from "../../lib/helpers.js";
 
 export default function ClaimDetailApplicant({ claim, onBack, onReupload, onRate, pushToast }) {
   const [showRating, setShowRating] = useState((claim.status === "approved" || claim.status === "rejected") && !claim.rating);
   const [reFiles, setReFiles] = useState([]);
   const cat = CATEGORY_META[claim.category];
+
+  const handleDownloadReport = () => {
+    downloadClaimReport(claim, STATUS_META[claim.status]?.label);
+    pushToast?.({ type: "success", title: "Report downloaded", body: `${claim.id}-report.html saved to your downloads.` });
+  };
 
   return (
     <div className="max-w-4xl">
@@ -24,12 +29,13 @@ export default function ClaimDetailApplicant({ claim, onBack, onReupload, onRate
           </div>
           <p className="text-sm text-ink-500 mt-1">{claim.applicant} · {claim.policyId}</p>
         </div>
-        <button className="btn-ghost text-sm"><Download className="w-4 h-4" />Download Report</button>
+        <button onClick={handleDownloadReport} className="btn-ghost text-sm"><Download className="w-4 h-4" />Download Report</button>
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-3 my-5">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 my-5">
         <Card className="p-4"><p className="text-[11px] text-ink-500">Submitted On</p><p className="font-semibold text-navy-900 text-sm mt-0.5">{fmtDateTime(claim.submittedAt)}</p></Card>
         <Card className="p-4"><p className="text-[11px] text-ink-500">Policy Number</p><p className="font-semibold text-navy-900 text-sm mt-0.5">{claim.policyId}</p></Card>
+        <Card className="p-4"><p className="text-[11px] text-ink-500">Insurer</p><p className="font-semibold text-navy-900 text-sm mt-0.5">{claim.insurer}</p></Card>
         <Card className="p-4"><p className="text-[11px] text-ink-500">Claim Amount</p><p className="font-semibold text-navy-900 text-sm mt-0.5 num">{fmtMoney(claim.amount)}</p></Card>
       </div>
 

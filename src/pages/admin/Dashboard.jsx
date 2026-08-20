@@ -25,7 +25,7 @@ export default function AdminDashboard({ claims, onOpenClaim, profile }) {
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-2xl font-semibold text-navy-900">Good morning{profile?.fullName ? `, ${profile.fullName.split(" ")[0]}` : ", Adjuster"}</h1>
-        <p className="text-ink-500 text-sm mt-1">Here's what's happening with claims today, {fmtDate(NOW)}.</p>
+        <p className="text-ink-500 text-sm mt-1">Here's what's happening with {profile?.orgName || "your"} claims today, {fmtDate(NOW)}.</p>
       </div>
 
       <div className="grid sm:grid-cols-3 gap-4">
