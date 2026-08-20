@@ -139,3 +139,18 @@ export function requestInfoRequest(claimId, notes) {
 export function decideClaimRequest(claimId, status, rejectionCode, notes) {
   return claimsRequest(`/${claimId}/decide`, { method: "PATCH", body: { status, rejectionCode, notes } });
 }
+
+// Get the message thread for a claim (policyholder <-> insurer).
+export function listClaimMessagesRequest(claimId) {
+  return claimsRequest(`/${claimId}/messages`);
+}
+
+// Send a message on a claim's thread.
+export function sendClaimMessageRequest(claimId, body) {
+  return claimsRequest(`/${claimId}/messages`, { method: "POST", body: { body } });
+}
+
+// Live list of insurer organizations that have at least one approved adjuster.
+export function listInsurersRequest() {
+  return claimsRequest("/insurers");
+}
