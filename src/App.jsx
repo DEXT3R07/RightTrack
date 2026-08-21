@@ -28,7 +28,7 @@ import { seedClaims, seedAdjusters, seedPolicyholders } from "./lib/data.js";
 import { NOW, fmtMoney, uid } from "./lib/helpers.js";
 import { PREMIUM_PRICE, PREMIUM_TRIAL_DAYS, SUPERADMIN_CREDENTIALS } from "./lib/constants.js";
 import { SiteNavContext } from "./lib/SiteNav.jsx";
-import { loginRequest, verifyOtpRequest, resendOtpRequest, signupRequest, meRequest, googleAuthRequest, listClaimsRequest, createClaimRequest, reuploadRequest, rateClaimRequest, startReviewRequest, requestInfoRequest, decideClaimRequest } from "./lib/api.js";
+import { loginRequest, verifyOtpRequest, resendOtpRequest, signupRequest, meRequest, googleAuthRequest, listClaimsRequest, createClaimRequest, reuploadRequest, rateClaimRequest, startReviewRequest, requestInfoRequest, decideClaimRequest, listMyPoliciesRequest } from "./lib/api.js";
 import { initGoogleSignIn, promptGoogleSignIn } from "./lib/googleAuth.js";
 
 export default function App() {
@@ -46,6 +46,7 @@ export default function App() {
   const [role, setRole] = useState("applicant");
   const [plan, setPlan] = useState("free");
   const [claims, setClaims] = useState(seedClaims);
+  const [myPolicies, setMyPolicies] = useState([]);
   const [adjusters, setAdjusters] = useState(seedAdjusters);
   const [policyholders, setPolicyholders] = useState(seedPolicyholders);
   const [view, setView] = useState("dashboard");
@@ -72,6 +73,22 @@ export default function App() {
       .then(({ claims }) => setClaims(claims))
       .catch((err) => pushToast({ type: "warn", title: "Couldn't load claims", body: err.message }));
   }, [screen]);
+
+  // Policyholders: load the policy numbers assigned to them, so a fresh
+  // assignment shows up as a real notification, not just an email.
+  useEffect(() => {
+    if (screen !== "app" || role !== "applicant") return;
+    listMyPoliciesRequest()
+      .then(({ policies }) => {
+        setMyPolicies(policies);
+        // Auto-fill the Settings page's "Policy Number" with their first
+        // active policy, since it's no longer collected at signup.
+        if (policies.length > 0) {
+          setProfile((prev) => ({ ...prev, policyId: prev.policyId || policies[0].policyId }));
+        }
+      })
+      .catch(() => { /* non-critical — silently skip if it fails */ });
+  }, [screen, role]);
 
   const pushToast = (t) => {
     const id = Math.random().toString(36).slice(2);
@@ -269,7 +286,7 @@ export default function App() {
   if (!sessionChecked) {
     return (
       <>
-        <div className="min-h-[100dvh] flex items-center justify-center bg-white">
+        <div className="min-h-screen flex items-center justify-center bg-white">
           <div className="w-8 h-8 border-2 border-bearing-600 border-t-transparent rounded-full animate-spin" />
         </div>
         <Toast toasts={toasts} />
@@ -414,7 +431,7 @@ export default function App() {
   const adjusterClaims = claims.filter((c) => c.insurer === profile.orgName);
   const isOwnClaim = !selectedClaim || selectedClaim.insurer === profile.orgName;
   const notifClaims = role === "admin" ? adjusterClaims : claims;
-  const notifCount = notifClaims.filter((c) => c.status === "action_required").length;
+  const notifCount = notifClaims.filter((c) => c.status === "action_required").length + (role === "applicant" ? myPolicies.length : 0);
 
   let title = "Dashboard", subtitle = "";
   if (view === "new") title = "New Claim";
@@ -430,7 +447,7 @@ export default function App() {
   if (view === "detail" && selectedClaim) { title = selectedClaim.id; subtitle = selectedClaim.category; }
 
   return (
-    <div className="min-h-[100dvh] flex bg-[#f5f6fa]">
+    <div className="min-h-screen flex bg-[#f5f6fa]">
       <Sidebar role={role} plan={plan} active={view} onNav={(v) => { setView(v); setSelected(null); }} onExit={exitApp} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
       <div className="flex-1 w-full min-w-0 flex flex-col">
         <Topbar title={title} subtitle={subtitle} role={role} plan={plan} onMenu={() => setMobileOpen(true)} notifCount={notifCount} onBell={() => setNotifOpen((o) => !o)} onSettings={() => setView("settings")} avatarUrl={profile.avatarUrl} profile={profile} />
@@ -453,7 +470,7 @@ export default function App() {
         </main>
       </div>
       <Toast toasts={toasts} />
-      <NotifPanel open={notifOpen} onClose={() => setNotifOpen(false)} claims={notifClaims} />
+      <NotifPanel open={notifOpen} onClose={() => setNotifOpen(false)} claims={notifClaims} policies={role === "applicant" ? myPolicies : []} />
     </div>
   );
 }

@@ -19,4 +19,15 @@ function requireAuth(req, res, next) {
   }
 }
 
-module.exports = { requireAuth };
+// Restricts a route to specific roles, e.g. requireRole("admin", "superadmin").
+// Must be used AFTER requireAuth, since it reads req.user.role.
+function requireRole(...allowedRoles) {
+  return (req, res, next) => {
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ message: "You don't have permission to do that." });
+    }
+    next();
+  };
+}
+
+module.exports = { requireAuth, requireRole };

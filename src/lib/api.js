@@ -153,4 +153,46 @@ export function sendClaimMessageRequest(claimId, body) {
 // Live list of insurer organizations that have at least one approved adjuster.
 export function listInsurersRequest() {
   return claimsRequest("/insurers");
+<<<<<<< HEAD
 }
+=======
+}
+
+const POLICIES_BASE_URL = BASE_URL.replace(/\/auth$/, "/policies");
+
+async function policiesRequest(path = "", { method = "GET", body } = {}) {
+  const res = await fetch(`${POLICIES_BASE_URL}${path}`, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getToken()}`,
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || "Something went wrong. Please try again.");
+  }
+  return data;
+}
+
+// Adjuster: register a valid policy number for their organization.
+export function registerPolicyRequest(policyholderEmail, category) {
+  return policiesRequest("", { method: "POST", body: { policyholderEmail, category } });
+}
+
+// Adjuster: list all policies registered for their organization.
+export function listPoliciesRequest() {
+  return policiesRequest("");
+}
+
+// Adjuster: deactivate a policy so it can no longer be used for new claims.
+export function deactivatePolicyRequest(id) {
+  return policiesRequest(`/${id}/deactivate`, { method: "PATCH" });
+}
+
+// Any logged-in user: see the policy numbers assigned to their own email.
+export function listMyPoliciesRequest() {
+  return policiesRequest("/mine");
+}
+>>>>>>> e804617fb417d968bb2754291270f5420b437a60
