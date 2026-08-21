@@ -31,7 +31,7 @@ export default function Sidebar({ role, plan, active, onNav, onExit, mobileOpen,
     <>
       {mobileOpen && <div className="fixed inset-0 bg-navy-950/60 backdrop-blur-[2px] z-40 lg:hidden" onClick={() => setMobileOpen(false)}></div>}
       <aside
-      className={`fixed inset-y-0 left-0 lg:sticky lg:inset-auto lg:top-0 h-[100dvh] lg:h-screen w-[78vw] max-w-72 lg:w-64 bg-navy-950 text-white flex flex-col z-50 transition-transform duration-300 shrink-0 overflow-hidden shadow-2xl lg:shadow-none ${
+className={`fixed inset-y-0 left-0 lg:sticky lg:inset-auto lg:top-0 h-[100dvh] lg:h-screen w-[78vw] max-w-72 lg:w-64 bg-navy-950 text-white flex flex-col z-50 transition-transform duration-300 shrink-0 overflow-hidden shadow-2xl lg:shadow-none ${
   mobileOpen
     ? "translate-x-0"
     : "-translate-x-full lg:translate-x-0"
