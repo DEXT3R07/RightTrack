@@ -10,7 +10,6 @@ export default function Sidebar({ role, plan, active, onNav, onExit, mobileOpen,
     ["dashboard", "Dashboard", LayoutDashboard],
     ["new", "New Claim", Plus],
     ["claims", "My Claims", Folder],
-    ["my-policies", "My Policies", Hash],
   ];
   const isPremium = isPremiumPlan(plan);
   const billingLabel = plan === "trial" ? "Manage Subscription" : plan === "premium" ? "Plans & Billing" : "Start Free Trial";

@@ -13,7 +13,6 @@ import { SignUp, Login, VerifyEmail, SuperAdminLogin, ForgotPassword } from "./p
 import ApplicantDashboard from "./pages/applicant/Dashboard.jsx";
 import NewClaimWizard from "./pages/applicant/NewClaim.jsx";
 import MyClaims from "./pages/applicant/MyClaims.jsx";
-import MyPolicies from "./pages/applicant/MyPolicies.jsx";
 import ClaimDetailApplicant from "./pages/applicant/ClaimDetail.jsx";
 import AdminDashboard from "./pages/admin/Dashboard.jsx";
 import ClaimsQueue from "./pages/admin/Queue.jsx";
@@ -437,7 +436,6 @@ export default function App() {
   if (view === "claims") title = "My Claims";
   if (view === "queue") title = "Claims Queue";
   if (view === "policies") title = "Manage Policies";
-  if (view === "my-policies") title = "My Policies";
   if (view === "api") title = "Developer / API";
   if (view === "billing") title = "Plans & Billing";
   if (view === "sa-dashboard") title = "Super Admin Overview";
@@ -456,7 +454,6 @@ export default function App() {
           {role === "applicant" && view === "dashboard" && <ApplicantDashboard claims={claims} onNav={setView} onOpenClaim={openClaim} profile={profile} />}
           {role === "applicant" && view === "new" && <NewClaimWizard claims={claims} onSubmitClaim={addClaim} pushToast={pushToast} />}
           {role === "applicant" && view === "claims" && <MyClaims claims={claims} onOpenClaim={openClaim} onNav={setView} />}
-          {role === "applicant" && view === "my-policies" && <MyPolicies pushToast={pushToast} />}
           {role === "applicant" && view === "detail" && selectedClaim && <ClaimDetailApplicant claim={selectedClaim} onBack={() => setView("claims")} onReupload={reupload} onRate={rate} pushToast={pushToast} currentUserId={profile.id} />}
           {role === "admin" && view === "dashboard" && <AdminDashboard claims={adjusterClaims} onOpenClaim={openClaim} profile={profile} />}
           {role === "admin" && view === "queue" && <ClaimsQueue claims={adjusterClaims} onOpenClaim={openClaim} plan={plan} onGoBilling={() => setView("billing")} pushToast={pushToast} insurer={profile.orgName} />}
