@@ -153,10 +153,8 @@ export function sendClaimMessageRequest(claimId, body) {
 // Live list of insurer organizations that have at least one approved adjuster.
 export function listInsurersRequest() {
   return claimsRequest("/insurers");
-<<<<<<< HEAD
 }
-=======
-}
+
 
 const POLICIES_BASE_URL = BASE_URL.replace(/\/auth$/, "/policies");
 
@@ -195,4 +193,3 @@ export function deactivatePolicyRequest(id) {
 export function listMyPoliciesRequest() {
   return policiesRequest("/mine");
 }
->>>>>>> e804617fb417d968bb2754291270f5420b437a60
