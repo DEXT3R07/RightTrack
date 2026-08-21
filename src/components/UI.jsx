@@ -91,7 +91,7 @@ export function Modal({ open, onClose, children, wide }) {
 
 export function Toast({ toasts }) {
   return (
-    <div className="fixed top-5 right-5 z-[100] flex flex-col gap-2 w-80">
+    <div className="fixed top-5 left-4 right-4 sm:left-auto sm:right-5 z-[100] flex flex-col gap-2 w-auto sm:w-80">
       {toasts.map((t) => (
         <div
           key={t.id}
@@ -146,9 +146,9 @@ export function Field({ label, children, full }) {
 
 export function Row({ k, v }) {
   return (
-    <div className="flex justify-between">
-      <dt className="text-ink-500">{k}</dt>
-      <dd className="font-medium text-navy-900">{v}</dd>
+    <div className="flex justify-between gap-3">
+      <dt className="text-ink-500 shrink-0">{k}</dt>
+      <dd className="font-medium text-navy-900 text-right break-words">{v}</dd>
     </div>
   );
 }

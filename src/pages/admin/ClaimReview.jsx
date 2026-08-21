@@ -147,10 +147,10 @@ export default function ClaimReview({ claim, onBack, onStartReview, onDecision, 
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-3 gap-2 mb-4">
-                  <button onClick={() => setDecision("approve")} className={`py-2.5 rounded-xl text-sm font-semibold border transition ${decision === "approve" ? "bg-emerald-600 text-white border-emerald-600" : "border-ink-900/10 text-ink-700 hover:border-emerald-400"}`}>Approve</button>
-                  <button onClick={() => setDecision("reject")} className={`py-2.5 rounded-xl text-sm font-semibold border transition ${decision === "reject" ? "bg-red-600 text-white border-red-600" : "border-ink-900/10 text-ink-700 hover:border-red-400"}`}>Reject</button>
-                  <button onClick={() => setDecision("info")} className={`py-2.5 rounded-xl text-sm font-semibold border transition ${decision === "info" ? "bg-amber-500 text-white border-amber-500" : "border-ink-900/10 text-ink-700 hover:border-amber-400"}`}>Request Info</button>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+                  <button onClick={() => setDecision("approve")} className={`py-2.5 px-2 rounded-xl text-sm font-semibold border transition ${decision === "approve" ? "bg-emerald-600 text-white border-emerald-600" : "border-ink-900/10 text-ink-700 hover:border-emerald-400"}`}>Approve</button>
+                  <button onClick={() => setDecision("reject")} className={`py-2.5 px-2 rounded-xl text-sm font-semibold border transition ${decision === "reject" ? "bg-red-600 text-white border-red-600" : "border-ink-900/10 text-ink-700 hover:border-red-400"}`}>Reject</button>
+                  <button onClick={() => setDecision("info")} className={`py-2.5 px-2 rounded-xl text-sm font-semibold border transition ${decision === "info" ? "bg-amber-500 text-white border-amber-500" : "border-ink-900/10 text-ink-700 hover:border-amber-400"}`}>Request Info</button>
                 </div>
                 {decision === "reject" && (
                   <div className="mb-3">

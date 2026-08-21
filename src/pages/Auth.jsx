@@ -6,12 +6,12 @@ import { forgotPasswordRequest, verifyResetOtpRequest, resetPasswordRequest } fr
 
 function AuthShell({ children, wide }) {
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-navy-950">
+    <div className="min-h-[100dvh] flex items-center justify-center p-4 relative overflow-hidden bg-navy-950">
       <div className="absolute inset-0">
         <img src="/bg-compass.jpg" alt="" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-br from-navy-950/90 via-navy-950/90 to-navy-950/95" />
       </div>
-      <div className={`relative w-full ${wide ? "max-w-lg" : "max-w-md"} bg-white rounded-3xl shadow-pop p-8 animate-fadein`}>{children}</div>
+      <div className={`relative w-full ${wide ? "max-w-lg" : "max-w-md"} bg-white rounded-3xl shadow-pop p-6 sm:p-8 animate-fadein max-h-[92dvh] overflow-y-auto`}>{children}</div>
     </div>
   );
 }

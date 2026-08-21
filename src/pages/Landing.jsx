@@ -44,7 +44,7 @@ export default function Landing({ onGetStarted, onGetStartedAdjuster, scrollTarg
   }, [scrollTarget, onScrolled]);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-[100dvh] bg-white">
       <SiteHeader />
 
       <section className="relative overflow-hidden bg-navy-950">
@@ -57,21 +57,21 @@ export default function Landing({ onGetStarted, onGetStartedAdjuster, scrollTarg
           />
           <div className="absolute inset-0 bg-gradient-to-b from-navy-950/90 via-navy-950/90 to-navy-950/95" />
         </div>
-        <div className="relative max-w-7xl mx-auto px-6 pt-24 pb-28 text-center">
-          <Reveal className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-brass-400 bg-white/5 ring-1 ring-white/10 px-3.5 py-1.5 rounded-full mb-7">
-            <Compass className="w-3.5 h-3.5" /> Claims &amp; Requests Status Tracking
+        <div className="relative max-w-7xl mx-auto px-6 pt-20 sm:pt-24 pb-24 sm:pb-28 text-center">
+          <Reveal className="inline-flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-semibold uppercase tracking-normal sm:tracking-widest text-brass-400 bg-white/5 ring-1 ring-white/10 px-3 sm:px-3.5 py-1.5 rounded-2xl sm:rounded-full mb-7 max-w-[260px] sm:max-w-none text-center">
+            <Compass className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" /> <span>Claims &amp; Requests Status Tracking</span>
           </Reveal>
-          <Reveal as="h1" delay={80} className="font-display text-4xl sm:text-6xl font-semibold text-white leading-[1.08] tracking-tight max-w-3xl mx-auto">
+          <Reveal as="h1" delay={80} className="font-display text-3xl sm:text-6xl font-semibold text-white leading-[1.15] sm:leading-[1.08] tracking-tight max-w-3xl mx-auto">
             Every claim, on a fixed bearing to resolution.
           </Reveal>
-          <Reveal delay={160} className="text-navy-100/70 text-lg mt-6 max-w-xl mx-auto leading-relaxed">
+          <Reveal delay={160} className="text-navy-100/70 text-base sm:text-lg mt-6 max-w-xl mx-auto leading-relaxed">
             RightTrack replaces opaque claim queues with a live, SLA-governed pipeline — so applicants always know where they stand, and reviewers never miss a deadline.
           </Reveal>
-          <Reveal delay={240} className="mt-9 flex items-center justify-center gap-3">
-            <button onClick={onGetStarted} className="bg-bearing-600 hover:bg-bearing-500 text-white font-semibold px-6 py-3.5 rounded-xl shadow-pop transition hover:-translate-y-0.5">Submit a Claim</button>
-            <button onClick={onGetStartedAdjuster} className="bg-white/5 hover:bg-white/10 text-white font-semibold px-6 py-3.5 rounded-xl ring-1 ring-white/15 transition hover:-translate-y-0.5">I'm an Adjuster</button>
+          <Reveal delay={240} className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-xs sm:max-w-none mx-auto">
+            <button onClick={onGetStarted} className="w-full sm:w-auto bg-bearing-600 hover:bg-bearing-500 text-white font-semibold px-6 py-3.5 rounded-xl shadow-pop transition hover:-translate-y-0.5">Submit a Claim</button>
+            <button onClick={onGetStartedAdjuster} className="w-full sm:w-auto bg-white/5 hover:bg-white/10 text-white font-semibold px-6 py-3.5 rounded-xl ring-1 ring-white/15 transition hover:-translate-y-0.5">I'm an Adjuster</button>
           </Reveal>
-          <div className="mt-16 grid grid-cols-3 max-w-lg mx-auto gap-6 text-left">
+          <div className="mt-14 sm:mt-16 grid grid-cols-3 max-w-lg mx-auto gap-3 sm:gap-6 text-left">
             <AnimatedStat target={48} suffix="hr" label="SLA response window" />
             <AnimatedStat target={99.2} suffix="%" label="On-time resolution target" />
             <AnimatedStat target={24} suffix="/7" label="Live status tracking" />
@@ -171,8 +171,8 @@ export default function Landing({ onGetStarted, onGetStartedAdjuster, scrollTarg
         <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-bearing-600/20 blur-3xl pointer-events-none"></div>
         <div className="relative max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-14 items-center">
           <Reveal>
-            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-brass-400 bg-white/5 ring-1 ring-white/10 px-3.5 py-1.5 rounded-full mb-6">
-              <Sparkles className="w-3.5 h-3.5" /> For Adjusters &amp; Claims Teams
+            <span className="inline-flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-semibold uppercase tracking-normal sm:tracking-widest text-brass-400 bg-white/5 ring-1 ring-white/10 px-3 sm:px-3.5 py-1.5 rounded-2xl sm:rounded-full mb-6 max-w-[260px] text-center">
+              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" /> <span>For Adjusters &amp; Claims Teams</span>
             </span>
             <h2 className="font-display text-3xl sm:text-4xl font-semibold text-white leading-tight max-w-lg">
               Run your entire claims queue from one breach-aware workspace.

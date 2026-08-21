@@ -8,12 +8,12 @@ import { useSiteNav } from "../lib/SiteNav.jsx";
 export default function Developers() {
   const { onGetStarted } = useSiteNav();
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-[100dvh] bg-white">
       <SiteHeader />
       <section className="relative overflow-hidden bg-navy-950">
         <CompassDial className="compass-ticks absolute -right-40 -top-40 w-[560px] h-[560px]" />
         <div className="relative max-w-4xl mx-auto px-6 pt-20 pb-16 text-center">
-          <Reveal className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-brass-400 bg-white/5 ring-1 ring-white/10 px-3.5 py-1.5 rounded-full mb-6">
+          <Reveal className="inline-flex items-center gap-2 text-[10px] sm:text-xs font-semibold uppercase tracking-normal sm:tracking-widest text-brass-400 bg-white/5 ring-1 ring-white/10 px-3 sm:px-3.5 py-1.5 rounded-full mb-6">
             Built for integration
           </Reveal>
           <Reveal as="h1" delay={80} className="font-display text-4xl sm:text-5xl font-semibold text-white leading-[1.1] tracking-tight">
