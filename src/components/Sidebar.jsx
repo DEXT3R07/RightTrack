@@ -32,7 +32,7 @@ export default function Sidebar({ role, plan, active, onNav, onExit, mobileOpen,
     <>
       {mobileOpen && <div className="fixed inset-0 bg-navy-950/50 z-40 lg:hidden" onClick={() => setMobileOpen(false)}></div>}
       <aside
-        className={`fixed left-0 lg:sticky top-0 h-screen w-64 bg-navy-950 text-white flex flex-col z-50 transition-transform duration-300 shrink-0 overflow-hidden
+        className={`fixed left-0 lg:sticky top-0 h-[100dvh] lg:h-screen w-64 bg-navy-950 text-white flex flex-col z-50 transition-transform duration-300 shrink-0 overflow-hidden
         ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
         <div className="absolute -top-24 -right-24 w-56 h-56 rounded-full bg-bearing-600/20 blur-3xl pointer-events-none"></div>

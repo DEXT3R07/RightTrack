@@ -57,12 +57,12 @@ export default function Settings({ role, profile, onUpdateProfile, pushToast }) 
 
       <Card className="p-6">
         <p className="font-display font-semibold text-navy-900 mb-4">Profile Picture</p>
-        <div className="flex items-center gap-5">
+        <div className="flex flex-col sm:flex-row items-center sm:items-center gap-5 text-center sm:text-left">
           <div className="w-20 h-20 rounded-full bg-gradient-to-br from-bearing-500 to-navy-800 text-white flex items-center justify-center overflow-hidden ring-4 ring-bearing-100 shrink-0">
             {profile.avatarUrl ? <img src={profile.avatarUrl} alt="" className="w-full h-full object-cover" /> : <User className="w-8 h-8" />}
           </div>
-          <div className="flex flex-col gap-2">
-            <div className="flex gap-2">
+          <div className="flex flex-col gap-2 items-center sm:items-start w-full sm:w-auto">
+            <div className="flex flex-wrap justify-center sm:justify-start gap-2">
               <button onClick={() => fileRef.current?.click()} className="btn-primary text-sm">
                 <Camera className="w-4 h-4" />Change Photo
               </button>

@@ -209,12 +209,12 @@ export default function NewClaimWizard({ claims, onSubmitClaim, pushToast }) {
       )}
 
       {step === 5 && (
-        <Card className="p-10 text-center">
+        <Card className="p-6 sm:p-10 text-center">
           <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto"><Check className="w-6 h-6" /></div>
           <p className="font-display text-xl font-semibold text-navy-900 mt-4">Claim Submitted Successfully!</p>
           <p className="text-sm text-ink-500 mt-1">Your claim has been received and is now being processed.</p>
           <p className="text-xs text-ink-500 mt-1">Routed to <span className="font-semibold text-navy-900">{form.insurer}</span>.</p>
-          <div className="grid grid-cols-3 gap-4 mt-6 max-w-md mx-auto">
+          <div className="grid grid-cols-3 gap-3 sm:gap-4 mt-6 max-w-md mx-auto">
             <div><p className="text-[11px] text-ink-500">Reference ID</p><p className="font-mono font-semibold text-navy-900 text-sm">{refId}</p></div>
             <div><p className="text-[11px] text-ink-500">Status</p><p className="font-semibold text-emerald-600 text-sm">Submitted</p></div>
             <div><p className="text-[11px] text-ink-500">Est. Resolution</p><p className="font-semibold text-navy-900 text-sm">≤ 48 hours</p></div>

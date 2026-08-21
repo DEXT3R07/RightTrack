@@ -13,7 +13,7 @@ const SECTIONS = [
 
 export default function Privacy() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-[100dvh] bg-white">
       <SiteHeader />
       <section className="max-w-3xl mx-auto px-6 py-20">
         <Reveal>

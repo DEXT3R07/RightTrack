@@ -13,7 +13,7 @@ export default function NotifPanel({ open, onClose, claims }) {
   return (
     <div className="fixed inset-0 z-50" onClick={onClose}>
       <div
-        className="absolute right-4 sm:right-8 top-16 w-[22rem] max-h-[70vh] overflow-y-auto bg-white rounded-2xl shadow-pop ring-1 ring-ink-900/8 animate-fadein"
+        className="absolute left-4 right-4 sm:left-auto sm:right-8 top-16 w-auto sm:w-[22rem] max-h-[70vh] overflow-y-auto bg-white rounded-2xl shadow-pop ring-1 ring-ink-900/8 animate-fadein"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-4 py-3 border-b border-ink-900/6 font-display font-semibold text-navy-900">Notifications</div>

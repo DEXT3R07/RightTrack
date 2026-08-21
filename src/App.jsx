@@ -267,7 +267,7 @@ export default function App() {
   if (!sessionChecked) {
     return (
       <>
-        <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="min-h-[100dvh] flex items-center justify-center bg-white">
           <div className="w-8 h-8 border-2 border-bearing-600 border-t-transparent rounded-full animate-spin" />
         </div>
         <Toast toasts={toasts} />
@@ -429,7 +429,7 @@ export default function App() {
   if (view === "detail" && selectedClaim) { title = selectedClaim.id; subtitle = selectedClaim.category; }
 
   return (
-    <div className="min-h-screen flex bg-[#f5f6fa]">
+    <div className="min-h-[100dvh] flex bg-[#f5f6fa]">
       <Sidebar role={role} plan={plan} active={view} onNav={(v) => { setView(v); setSelected(null); }} onExit={exitApp} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
       <div className="flex-1 w-full min-w-0 flex flex-col">
         <Topbar title={title} subtitle={subtitle} role={role} plan={plan} onMenu={() => setMobileOpen(true)} notifCount={notifCount} onBell={() => setNotifOpen((o) => !o)} onSettings={() => setView("settings")} avatarUrl={profile.avatarUrl} profile={profile} />

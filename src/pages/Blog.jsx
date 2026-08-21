@@ -84,7 +84,7 @@ export default function Blog() {
   const [openPost, setOpenPost] = useState(null);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-[100dvh] bg-white">
       <SiteHeader />
       <section className="max-w-5xl mx-auto px-6 py-20">
         <Reveal>
