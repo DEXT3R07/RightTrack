@@ -174,8 +174,8 @@ async function policiesRequest(path = "", { method = "GET", body } = {}) {
 }
 
 // Adjuster: register a valid policy number for their organization.
-export function registerPolicyRequest(policyId, category, policyholderEmail) {
-  return policiesRequest("", { method: "POST", body: { policyId, category, policyholderEmail } });
+export function registerPolicyRequest(policyholderEmail, category) {
+  return policiesRequest("", { method: "POST", body: { policyholderEmail, category } });
 }
 
 // Adjuster: list all policies registered for their organization.
@@ -186,4 +186,9 @@ export function listPoliciesRequest() {
 // Adjuster: deactivate a policy so it can no longer be used for new claims.
 export function deactivatePolicyRequest(id) {
   return policiesRequest(`/${id}/deactivate`, { method: "PATCH" });
+}
+
+// Any logged-in user: see the policy numbers assigned to their own email.
+export function listMyPoliciesRequest() {
+  return policiesRequest("/mine");
 }

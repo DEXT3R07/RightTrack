@@ -1,16 +1,23 @@
+const crypto = require("crypto");
 const Policy = require("../models/Policy");
 const User = require("../models/User");
+const { sendPolicyAssignedEmail } = require("../utils/sendEmail");
+
+function generatePolicyId() {
+  return "POL-" + crypto.randomBytes(4).toString("hex").toUpperCase();
+}
 
 /**
  * POST /api/policies
- * Body: { policyId, category, policyholderEmail? }
- * Adjuster registers a valid policy number for their own organization.
+ * Body: { policyholderEmail, category }
+ * Adjuster assigns a brand-new, system-generated policy number to a specific
+ * policyholder's email — no manual typing, no chance of a typo mismatch.
  */
 async function registerPolicy(req, res) {
   try {
-    const { policyId, category, policyholderEmail } = req.body;
-    if (!policyId || !category) {
-      return res.status(400).json({ message: "Policy ID and category are required." });
+    const { policyholderEmail, category } = req.body;
+    if (!policyholderEmail || !category) {
+      return res.status(400).json({ message: "Policyholder email and category are required." });
     }
 
     const adjuster = await User.findById(req.user.id).select("orgName");
@@ -18,23 +25,36 @@ async function registerPolicy(req, res) {
       return res.status(400).json({ message: "Your account has no organization on file." });
     }
 
-    const existing = await Policy.findOne({ policyId: policyId.trim(), insurer: adjuster.orgName });
-    if (existing) {
-      return res.status(409).json({ message: "This policy ID is already registered for your organization." });
+    const email = policyholderEmail.toLowerCase().trim();
+
+    // Generate a unique ID, retrying on the rare collision.
+    let policyId;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const candidate = generatePolicyId();
+      const clash = await Policy.findOne({ policyId: candidate, insurer: adjuster.orgName });
+      if (!clash) {
+        policyId = candidate;
+        break;
+      }
+    }
+    if (!policyId) {
+      return res.status(500).json({ message: "Couldn't generate a unique policy ID. Please try again." });
     }
 
     const policy = await Policy.create({
-      policyId: policyId.trim(),
+      policyId,
       insurer: adjuster.orgName,
       category,
-      policyholderEmail: policyholderEmail ? policyholderEmail.toLowerCase().trim() : null,
+      policyholderEmail: email,
       registeredBy: req.user.id,
     });
+
+    await sendPolicyAssignedEmail(email, policyId, adjuster.orgName, category);
 
     return res.status(201).json({ policy });
   } catch (err) {
     if (err.code === 11000) {
-      return res.status(409).json({ message: "This policy ID is already registered for your organization." });
+      return res.status(409).json({ message: "That policy ID already exists — please try again." });
     }
     console.error("Register policy error:", err);
     return res.status(500).json({ message: "Something went wrong." });
@@ -89,4 +109,19 @@ async function findValidPolicy(policyId, insurer, category) {
   });
 }
 
-module.exports = { registerPolicy, listPolicies, deactivatePolicy, findValidPolicy };
+/**
+ * GET /api/policies/mine
+ * Any logged-in user: lists the policy numbers assigned to THEIR email.
+ */
+async function listMyPolicies(req, res) {
+  try {
+    const user = await User.findById(req.user.id).select("email");
+    const policies = await Policy.find({ policyholderEmail: user.email, isActive: true }).sort({ createdAt: -1 });
+    return res.status(200).json({ policies });
+  } catch (err) {
+    console.error("List my policies error:", err);
+    return res.status(500).json({ message: "Something went wrong." });
+  }
+}
+
+module.exports = { registerPolicy, listPolicies, deactivatePolicy, findValidPolicy, listMyPolicies };

@@ -87,4 +87,46 @@ async function sendPasswordResetEmail(toEmail, otp) {
   return data;
 }
 
-module.exports = { sendOtpEmail, sendPasswordResetEmail };
+async function sendPolicyAssignedEmail(toEmail, policyId, insurer, category) {
+  const payload = {
+    sender: {
+      name: "RightTrack",
+      email: process.env.BREVO_SENDER_EMAIL,
+    },
+    to: [{ email: toEmail }],
+    subject: `Your ${insurer} policy number is ready`,
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">
+        <h2 style="color: #0B2545;">Your policy is registered</h2>
+        <p>${insurer} has assigned you a policy number for <strong>${category}</strong> claims. Use this when filing a claim on RightTrack:</p>
+        <p style="font-size: 28px; font-weight: bold; letter-spacing: 2px; color: #0B2545; background: #E8F6F1; padding: 16px; text-align: center; border-radius: 8px;">
+          ${policyId}
+        </p>
+        <p style="color: #667085; font-size: 13px;">You can also find this number anytime under "My Policies" in your RightTrack account.</p>
+      </div>
+    `,
+  };
+
+  const res = await fetch(BREVO_API_URL, {
+    method: "POST",
+    headers: {
+      "api-key": process.env.BREVO_API_KEY,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    console.error("Brevo send error (policy assigned):", res.status, data);
+    // Don't throw — the policy is already created either way; email is a nice-to-have.
+    return null;
+  }
+
+  console.log(`Policy assigned email sent to ${toEmail} via Brevo — messageId: ${data.messageId}`);
+  return data;
+}
+
+module.exports = { sendOtpEmail, sendPasswordResetEmail, sendPolicyAssignedEmail };
