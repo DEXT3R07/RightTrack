@@ -16,6 +16,7 @@ import MyClaims from "./pages/applicant/MyClaims.jsx";
 import ClaimDetailApplicant from "./pages/applicant/ClaimDetail.jsx";
 import AdminDashboard from "./pages/admin/Dashboard.jsx";
 import ClaimsQueue from "./pages/admin/Queue.jsx";
+import ManagePolicies from "./pages/admin/Policies.jsx";
 import ClaimReview from "./pages/admin/ClaimReview.jsx";
 import Billing from "./pages/admin/Billing.jsx";
 import SuperAdminDashboard from "./pages/superadmin/Dashboard.jsx";
@@ -53,7 +54,7 @@ export default function App() {
   const [toasts, setToasts] = useState([]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [profile, setProfile] = useState({ avatarUrl: null, fullName: "", email: "", phone: "", policyId: "", plan: "", orgName: "", licenseNumber: "", notifyEmail: true, notifySms: false });
+  const [profile, setProfile] = useState({ id: null, avatarUrl: null, fullName: "", email: "", phone: "", policyId: "", plan: "", orgName: "", licenseNumber: "", notifyEmail: true, notifySms: false });
   const updateProfile = (patch) => setProfile((prev) => ({ ...prev, ...patch }));
 
   useEffect(() => {
@@ -84,6 +85,7 @@ export default function App() {
     } else if (identity) {
       setProfile((prev) => ({
         ...prev,
+        id: identity.id || identity._id || null,
         fullName: identity.fullName || "",
         email: identity.email || "",
         policyId: identity.policyNumber || "",
@@ -416,6 +418,7 @@ export default function App() {
   if (view === "new") title = "New Claim";
   if (view === "claims") title = "My Claims";
   if (view === "queue") title = "Claims Queue";
+  if (view === "policies") title = "Manage Policies";
   if (view === "api") title = "Developer / API";
   if (view === "billing") title = "Plans & Billing";
   if (view === "sa-dashboard") title = "Super Admin Overview";
@@ -434,16 +437,17 @@ export default function App() {
           {role === "applicant" && view === "dashboard" && <ApplicantDashboard claims={claims} onNav={setView} onOpenClaim={openClaim} profile={profile} />}
           {role === "applicant" && view === "new" && <NewClaimWizard claims={claims} onSubmitClaim={addClaim} pushToast={pushToast} />}
           {role === "applicant" && view === "claims" && <MyClaims claims={claims} onOpenClaim={openClaim} onNav={setView} />}
-          {role === "applicant" && view === "detail" && selectedClaim && <ClaimDetailApplicant claim={selectedClaim} onBack={() => setView("claims")} onReupload={reupload} onRate={rate} pushToast={pushToast} />}
+          {role === "applicant" && view === "detail" && selectedClaim && <ClaimDetailApplicant claim={selectedClaim} onBack={() => setView("claims")} onReupload={reupload} onRate={rate} pushToast={pushToast} currentUserId={profile.id} />}
           {role === "admin" && view === "dashboard" && <AdminDashboard claims={adjusterClaims} onOpenClaim={openClaim} profile={profile} />}
           {role === "admin" && view === "queue" && <ClaimsQueue claims={adjusterClaims} onOpenClaim={openClaim} plan={plan} onGoBilling={() => setView("billing")} pushToast={pushToast} insurer={profile.orgName} />}
-          {role === "admin" && view === "detail" && selectedClaim && isOwnClaim && <ClaimReview claim={selectedClaim} onBack={() => setView("queue")} onStartReview={startReview} onDecision={decide} onRequestInfo={requestInfo} pushToast={pushToast} />}
+          {role === "admin" && view === "policies" && <ManagePolicies pushToast={pushToast} />}
+          {role === "admin" && view === "detail" && selectedClaim && isOwnClaim && <ClaimReview claim={selectedClaim} onBack={() => setView("queue")} onStartReview={startReview} onDecision={decide} onRequestInfo={requestInfo} pushToast={pushToast} currentUserId={profile.id} />}
           {role === "admin" && view === "billing" && <Billing plan={plan} onUpgrade={upgradePlan} onDowngrade={downgradePlan} onStartTrial={startTrial} />}
           {role === "superadmin" && view === "sa-dashboard" && <SuperAdminDashboard claims={claims} adjusters={adjusters} policyholders={policyholders} onOpenClaim={openClaim} onNav={setView} />}
           {role === "superadmin" && view === "sa-claims" && <SuperAdminClaims claims={claims} adjusters={adjusters} onOpenClaim={openClaim} />}
           {role === "superadmin" && view === "sa-adjusters" && <SuperAdminAdjusters adjusters={adjusters} claims={claims} onToggleStatus={toggleAdjusterStatus} onAddAdjuster={addAdjuster} pushToast={pushToast} />}
           {role === "superadmin" && view === "sa-policyholders" && <SuperAdminPolicyholders policyholders={policyholders} claims={claims} onToggleStatus={togglePolicyholderStatus} pushToast={pushToast} onOpenClaim={openClaim} />}
-          {role === "superadmin" && view === "detail" && selectedClaim && <ClaimReview claim={selectedClaim} onBack={() => setView("sa-claims")} onDecision={decide} onRequestInfo={requestInfo} pushToast={pushToast} readOnly />}
+          {role === "superadmin" && view === "detail" && selectedClaim && <ClaimReview claim={selectedClaim} onBack={() => setView("sa-claims")} onDecision={decide} onRequestInfo={requestInfo} pushToast={pushToast} currentUserId={profile.id} readOnly />}
           {view === "api" && <ApiDocs role={role} plan={plan} onGoBilling={() => setView("billing")} pushToast={pushToast} />}
           {view === "settings" && <Settings role={role} profile={profile} onUpdateProfile={updateProfile} pushToast={pushToast} />}
         </main>
