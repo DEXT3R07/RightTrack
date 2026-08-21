@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Search, AlertTriangle, Eye, Download, Lock } from "lucide-react";
-import { Card, StatusPill, SlaBadge, PremiumBadge } from "../../components/UI.jsx";
+import { Card, StatusPill, SlaBadge, PremiumBadge, Select } from "../../components/UI.jsx";
 import { CATEGORY_META, STATUS_META, isPremiumPlan } from "../../lib/constants.js";
 import { slaInfo, fmtDate, fmtMoney } from "../../lib/helpers.js";
 
@@ -70,15 +70,15 @@ export default function ClaimsQueue({ claims, onOpenClaim, plan = "free", onGoBi
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-300" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by claim ID, name, or policy no..." className="input pl-9" />
         </div>
-        <select value={statusF} onChange={(e) => setStatusF(e.target.value)} className="input w-auto">
+        <Select value={statusF} onChange={(e) => setStatusF(e.target.value)} wrapperClassName="w-full sm:w-auto" className="w-full sm:w-auto">
           <option value="all">All Status</option>
           {Object.entries(STATUS_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-        </select>
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="input w-auto">
+        </Select>
+        <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)} wrapperClassName="w-full sm:w-auto" className="w-full sm:w-auto">
           <option value="urgency">Sort: Urgency</option>
           <option value="amount">Sort: Amount</option>
           <option value="date">Sort: Newest</option>
-        </select>
+        </Select>
       </Card>
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">

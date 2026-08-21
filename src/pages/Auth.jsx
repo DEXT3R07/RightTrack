@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Mail, Lock, ArrowLeft, User, Hash, Building2, BadgeCheck, ShieldCheck, UserRound, ShieldAlert, Check, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, ArrowLeft, User, Hash, Building2, BadgeCheck, ShieldCheck, UserRound, ShieldAlert, Check, Eye, EyeOff, ChevronDown } from "lucide-react";
 import Logo from "../components/Logo.jsx";
 import { SUPERADMIN_CREDENTIALS, INSURERS, CATEGORY_META } from "../lib/constants.js";
 import { forgotPasswordRequest, verifyResetOtpRequest, resetPasswordRequest } from "../lib/api.js";
@@ -142,6 +142,7 @@ export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "appli
   if (!form.email.includes("@")) errors.push("Enter a valid email address.");
   if (form.password.length < 6) errors.push("Password must be at least 6 characters.");
   if (form.password !== form.confirm) errors.push("Password and Confirm Password don't match.");
+  if (role === "applicant" && !policyHolder.policyNumber.trim()) errors.push("Enter your policy number.");
   if (role === "admin") {
     if (!adjuster.orgName.trim()) errors.push("Enter your organization's name.");
     if (!adjuster.licenseNumber.trim()) {
@@ -190,6 +191,19 @@ export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "appli
           placeholder="Enter your full name"
         />
 
+        {role === "applicant" && (
+          <TextField
+            label="Policy Number"
+            icon={Hash}
+            type="text"
+            required
+            value={policyHolder.policyNumber}
+            onChange={(e) => setPolicyHolder({ ...policyHolder, policyNumber: e.target.value })}
+            placeholder="e.g. LDW/2026/12345"
+            hint="Found on your policy documents or welcome email — this locks to your account and is used to verify future claims."
+          />
+        )}
+
         {role === "applicant" ? null : (
           <>
             <TextField
@@ -234,11 +248,11 @@ export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "appli
             )}
             <div>
               <span className="text-xs font-semibold text-ink-700 mb-1.5 block">Claim Categories You Handle</span>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {Object.keys(CATEGORY_META).map((cat) => {
                   const checked = adjuster.claimCategories.includes(cat);
                   return (
-                    <label key={cat} className={`flex items-center gap-2 text-sm rounded-xl border px-3 py-2 cursor-pointer ${checked ? "border-bearing-600 bg-bearing-100/50 text-navy-900" : "border-ink-900/12 text-ink-700"}`}>
+                    <label key={cat} className={`flex items-center gap-2 text-sm rounded-xl border px-3 py-2.5 cursor-pointer ${checked ? "border-bearing-600 bg-bearing-100/50 text-navy-900" : "border-ink-900/12 text-ink-700"}`}>
                       <input
                         type="checkbox"
                         checked={checked}
@@ -248,9 +262,9 @@ export function SignUp({ onSubmit, onGoLogin, onGoogleAuth, initialRole = "appli
                             : adjuster.claimCategories.filter((c) => c !== cat);
                           setAdjuster({ ...adjuster, claimCategories: next });
                         }}
-                        className="rounded border-ink-900/20"
+                        className="rounded border-ink-900/20 shrink-0"
                       />
-                      {cat}
+                      <span className="leading-snug break-words min-w-0">{cat}</span>
                     </label>
                   );
                 })}
@@ -343,9 +357,10 @@ export function Login({ onSubmit, onGoSignup, onGoSuperAdmin, onForgotPassword, 
             <span className="text-xs font-semibold text-ink-700 mb-1.5 block">Insurer / Organization</span>
             <div className="relative">
               <Building2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-300" />
-              <select value={form.orgName} onChange={(e) => setForm({ ...form, orgName: e.target.value })} className="input pl-9">
+              <select value={form.orgName} onChange={(e) => setForm({ ...form, orgName: e.target.value })} className="input pl-9 pr-9 appearance-none cursor-pointer bg-white">
                 {INSURERS.map((i) => <option key={i}>{i}</option>)}
               </select>
+              <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
             </div>
           </label>
         )}

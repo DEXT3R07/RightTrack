@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Plus, Folder, Code2, LogOut, Sparkles, CreditCard, ShieldAlert, UserRound, Settings, X, Hash } from "lucide-react";
+import { LayoutDashboard, Plus, Folder, Code2, LogOut, Sparkles, CreditCard, ShieldAlert, UserRound, Settings, X } from "lucide-react";
 import Logo from "./Logo.jsx";
 import { Modal } from "./UI.jsx";
 import { isPremiumPlan } from "../lib/constants.js";
@@ -16,7 +16,6 @@ export default function Sidebar({ role, plan, active, onNav, onExit, mobileOpen,
   const adminNav = [
     ["dashboard", "Dashboard", LayoutDashboard],
     ["queue", "Claims Queue", Folder],
-    ["policies", "Manage Policies", Hash],
     ["api", "Developer / API", Code2],
     ["billing", billingLabel, isPremium ? CreditCard : Sparkles],
   ];
@@ -30,15 +29,18 @@ export default function Sidebar({ role, plan, active, onNav, onExit, mobileOpen,
 
   return (
     <>
-      {mobileOpen && <div className="fixed inset-0 bg-navy-950/50 z-40 lg:hidden" onClick={() => setMobileOpen(false)}></div>}
+      {mobileOpen && <div className="fixed inset-0 bg-navy-950/60 backdrop-blur-[2px] z-40 lg:hidden" onClick={() => setMobileOpen(false)}></div>}
       <aside
-        className={`fixed left-0 lg:sticky top-0 h-[100dvh] lg:h-screen w-64 bg-navy-950 text-white flex flex-col z-50 transition-transform duration-300 shrink-0 overflow-hidden
+        className={`fixed inset-y-0 left-0 lg:sticky lg:inset-auto lg:top-0 h-[100dvh] lg:h-screen w-[78vw] max-w-72 lg:w-64 bg-navy-950 text-white flex flex-col z-50 transition-transform duration-300 shrink-0 overflow-hidden shadow-2xl lg:shadow-none
         ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
         <div className="absolute -top-24 -right-24 w-56 h-56 rounded-full bg-bearing-600/20 blur-3xl pointer-events-none"></div>
         <div className="absolute bottom-0 -left-16 w-48 h-48 rounded-full bg-brass-500/10 blur-3xl pointer-events-none"></div>
-        <div className="h-16 flex items-center px-6 border-b border-white/10 shrink-0 relative">
+        <div className="h-16 flex items-center justify-between px-6 border-b border-white/10 shrink-0 relative">
           <Logo variant="light" />
+          <button onClick={() => setMobileOpen(false)} className="lg:hidden p-1.5 -mr-1.5 rounded-lg text-navy-100/60 hover:bg-white/8 hover:text-white transition-colors">
+            <X className="w-5 h-5" />
+          </button>
         </div>
         <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto scrollbar-none relative">
           {items.map(([key, label, Icon]) => {

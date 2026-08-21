@@ -1,7 +1,18 @@
 import { useEffect } from "react";
-import { Check, X, AlertTriangle, Clock, Lock, Sparkles } from "lucide-react";
+import { Check, X, AlertTriangle, Clock, Lock, Sparkles, ChevronDown } from "lucide-react";
 import { STATUS_META } from "../lib/constants.js";
 import { slaInfo } from "../lib/helpers.js";
+
+export function Select({ className = "", wrapperClassName = "", children, ...props }) {
+  return (
+    <div className={`relative ${wrapperClassName}`}>
+      <select {...props} className={`input appearance-none pr-9 cursor-pointer bg-white ${className}`}>
+        {children}
+      </select>
+      <ChevronDown className="w-4 h-4 text-ink-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+    </div>
+  );
+}
 
 export function Card({ children, className = "", hoverable = false, ...rest }) {
   return (

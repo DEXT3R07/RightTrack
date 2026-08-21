@@ -14,8 +14,6 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/claims", require("./routes/claimsRoutes"));
-app.use("/api/claims", require("./routes/messagesRoutes"));
-app.use("/api/policies", require("./routes/policiesRoutes"));
 
 app.get("/", (req, res) => {
   res.send("RightTrack API is running.");

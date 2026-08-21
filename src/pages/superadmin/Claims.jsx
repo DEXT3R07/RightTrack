@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Search, AlertTriangle, Eye, Download } from "lucide-react";
-import { Card, StatusPill, SlaBadge } from "../../components/UI.jsx";
+import { Card, StatusPill, SlaBadge, Select } from "../../components/UI.jsx";
 import { CATEGORY_META, STATUS_META, INSURERS } from "../../lib/constants.js";
 import { slaInfo, fmtDate, fmtMoney } from "../../lib/helpers.js";
 
@@ -50,18 +50,18 @@ export default function SuperAdminClaims({ claims, adjusters, onOpenClaim }) {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-300" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by claim ID, name, or policy no..." className="input pl-9" />
         </div>
-        <select value={statusF} onChange={(e) => setStatusF(e.target.value)} className="input w-auto">
+        <Select value={statusF} onChange={(e) => setStatusF(e.target.value)} wrapperClassName="w-full sm:w-auto" className="w-full sm:w-auto">
           <option value="all">All Status</option>
           {Object.entries(STATUS_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-        </select>
-        <select value={adjusterF} onChange={(e) => setAdjusterF(e.target.value)} className="input w-auto">
+        </Select>
+        <Select value={adjusterF} onChange={(e) => setAdjusterF(e.target.value)} wrapperClassName="w-full sm:w-auto" className="w-full sm:w-auto">
           <option value="all">All Adjusters</option>
           {adjusters.map((a) => <option key={a.id} value={a.name}>{a.name}</option>)}
-        </select>
-        <select value={insurerF} onChange={(e) => setInsurerF(e.target.value)} className="input w-auto">
+        </Select>
+        <Select value={insurerF} onChange={(e) => setInsurerF(e.target.value)} wrapperClassName="w-full sm:w-auto" className="w-full sm:w-auto">
           <option value="all">All Insurers</option>
           {INSURERS.map((i) => <option key={i}>{i}</option>)}
-        </select>
+        </Select>
       </Card>
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">

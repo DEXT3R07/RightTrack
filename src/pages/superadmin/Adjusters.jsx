@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Search, Mail, Phone, MessageSquare, Ban, CheckCircle2, Star, Plus, BadgeCheck, Building2, Hash } from "lucide-react";
-import { Card, Modal, Field } from "../../components/UI.jsx";
+import { Card, Modal, Field, Select } from "../../components/UI.jsx";
 import MessageModal from "../../components/MessageModal.jsx";
 import { ADJUSTER_STATUS_META } from "../../lib/constants.js";
 import { slaInfo, fmtDate } from "../../lib/helpers.js";
@@ -205,9 +205,9 @@ export default function SuperAdminAdjusters({ adjusters, claims, onToggleStatus,
             <Field label="Email"><input className="input" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="name@righttrack.africa" required /></Field>
             <Field label="Phone"><input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+234 ..." /></Field>
             <Field label="Unit">
-              <select className="input" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
+              <Select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
                 <option>Claims Unit 1</option><option>Claims Unit 2</option><option>Claims Unit 3</option>
-              </select>
+              </Select>
             </Field>
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={() => setInviting(false)} className="btn-ghost flex-1">Cancel</button>

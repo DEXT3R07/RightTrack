@@ -154,36 +154,3 @@ export function sendClaimMessageRequest(claimId, body) {
 export function listInsurersRequest() {
   return claimsRequest("/insurers");
 }
-
-const POLICIES_BASE_URL = BASE_URL.replace(/\/auth$/, "/policies");
-
-async function policiesRequest(path = "", { method = "GET", body } = {}) {
-  const res = await fetch(`${POLICIES_BASE_URL}${path}`, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken()}`,
-    },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.message || "Something went wrong. Please try again.");
-  }
-  return data;
-}
-
-// Adjuster: register a valid policy number for their organization.
-export function registerPolicyRequest(policyId, category, policyholderEmail) {
-  return policiesRequest("", { method: "POST", body: { policyId, category, policyholderEmail } });
-}
-
-// Adjuster: list all policies registered for their organization.
-export function listPoliciesRequest() {
-  return policiesRequest("");
-}
-
-// Adjuster: deactivate a policy so it can no longer be used for new claims.
-export function deactivatePolicyRequest(id) {
-  return policiesRequest(`/${id}/deactivate`, { method: "PATCH" });
-}

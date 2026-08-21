@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Check, ChevronRight, ArrowLeft, Star, MessageSquareText } from "lucide-react";
-import { Card, Field, Row } from "../../components/UI.jsx";
+import { Check, ChevronRight, ArrowLeft, Star, MessageSquareText, Lock } from "lucide-react";
+import { Card, Field, Row, Select } from "../../components/UI.jsx";
 import FileDrop from "../../components/FileDrop.jsx";
 import InsurerSearchSelect from "../../components/InsurerSearchSelect.jsx";
 import { CATEGORY_META, INSURERS } from "../../lib/constants.js";
@@ -42,9 +42,9 @@ function InsurerRatingPanel({ claims, insurer }) {
   );
 }
 
-export default function NewClaimWizard({ claims, onSubmitClaim, pushToast }) {
+export default function NewClaimWizard({ claims, profile, onSubmitClaim, pushToast }) {
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ fullName: "", policyId: "", insurer: "", category: "", amount: "", description: "" });
+  const [form, setForm] = useState({ fullName: profile?.fullName || "", policyId: profile?.policyId || "", insurer: "", category: "", amount: "", description: "" });
   const [files, setFiles] = useState([]);
   const [refId, setRefId] = useState(null);
   // Static fallback allows any category, since it predates per-org category selection.
@@ -107,8 +107,23 @@ export default function NewClaimWizard({ claims, onSubmitClaim, pushToast }) {
           <p className="font-display font-semibold text-navy-900">Claim Details</p>
           <p className="text-xs text-ink-500 mt-1 mb-5">Please provide the details of your claim.</p>
           <div className="grid sm:grid-cols-2 gap-4">
-            <Field label="Full Name"><input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} placeholder="e.g. Dexter Echo" className="input" /></Field>
-            <Field label="Entity / Policy ID"><input value={form.policyId} onChange={(e) => setForm({ ...form, policyId: e.target.value })} placeholder="e.g. LDW/2026/12345" className="input" /></Field>
+            <Field label="Full Name">
+              <div className="input bg-ink-900/[0.03] text-ink-500 cursor-not-allowed flex items-center justify-between gap-2">
+                <span className="truncate">{form.fullName || "Not set on your profile"}</span>
+                <Lock className="w-3.5 h-3.5 shrink-0 text-ink-300" />
+              </div>
+            </Field>
+            <Field label="Entity / Policy ID">
+              <div className="input bg-ink-900/[0.03] text-ink-500 cursor-not-allowed flex items-center justify-between gap-2">
+                <span className="truncate">{form.policyId || "Not set on your profile"}</span>
+                <Lock className="w-3.5 h-3.5 shrink-0 text-ink-300" />
+              </div>
+            </Field>
+            {(!profile?.fullName || !profile?.policyId) && (
+              <p className="sm:col-span-2 text-[11px] text-brass-600 bg-brass-500/10 rounded-lg px-3 py-2 -mt-1">
+                Your name and policy number come from your account profile and can't be edited here. Update them from Settings before filing a claim if either is missing.
+              </p>
+            )}
             <Field label="Insurer" full>
               <InsurerSearchSelect
                 options={insurerOptions.map((o) => o.name)}
@@ -119,10 +134,10 @@ export default function NewClaimWizard({ claims, onSubmitClaim, pushToast }) {
               <InsurerRatingPanel claims={claims} insurer={form.insurer} />
             </Field>
             <Field label="Claim Category">
-              <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="input" disabled={!form.insurer}>
+              <Select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} disabled={!form.insurer}>
                 <option value="" disabled>{form.insurer ? "Select a category" : "Choose an insurer first"}</option>
                 {availableCategories.map((c) => <option key={c}>{c}</option>)}
-              </select>
+              </Select>
               {form.insurer && availableCategories.length < Object.keys(CATEGORY_META).length && (
                 <span className="text-[11px] text-ink-400 mt-1 block">Showing only the categories {form.insurer} handles.</span>
               )}

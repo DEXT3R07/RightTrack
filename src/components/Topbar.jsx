@@ -12,13 +12,13 @@ export default function Topbar({ title, subtitle, role, plan, onMenu, notifCount
       <div className={`h-[3px] bg-gradient-to-r ${accent}`}></div>
       <div className="h-[61px] flex items-center justify-between px-4 sm:px-8">
         <div className="flex items-center gap-3 min-w-0">
-          <button onClick={onMenu} className="lg:hidden p-2 -ml-2 text-ink-700"><Menu className="w-5 h-5" /></button>
+          <button onClick={onMenu} className="lg:hidden p-2.5 -ml-1 rounded-xl bg-navy-50 text-navy-900 hover:bg-navy-100 transition-colors shrink-0"><Menu className="w-5 h-5" /></button>
           <div className="min-w-0">
             <p className="font-display font-semibold text-navy-900 truncate">{title}</p>
             {subtitle && <p className="text-xs text-ink-500 truncate">{subtitle}</p>}
           </div>
         </div>
-        <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <button onClick={onBell} className="relative p-2 rounded-lg hover:bg-bearing-100/70 text-ink-700 hover:text-bearing-600 transition-colors">
             <Bell className="w-5 h-5" />
             {notifCount > 0 && (
@@ -37,11 +37,11 @@ export default function Topbar({ title, subtitle, role, plan, onMenu, notifCount
               <ShieldAlert className="w-3 h-3" />Super Admin
             </span>
           )}
-          <button onClick={onSettings} className="hidden sm:flex items-center gap-2 pl-3 border-l border-ink-900/8 hover:opacity-80 transition-opacity">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-bearing-500 to-navy-800 text-white flex items-center justify-center overflow-hidden ring-2 ring-white shadow-sm">
+          <button onClick={onSettings} className="flex items-center gap-2 sm:pl-3 sm:border-l border-ink-900/8 hover:opacity-80 transition-opacity">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-bearing-500 to-navy-800 text-white flex items-center justify-center overflow-hidden ring-2 ring-white shadow-sm shrink-0">
               {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4" />}
             </div>
-            <div className="leading-tight text-left">
+            <div className="hidden sm:block leading-tight text-left">
               <p className="text-xs font-semibold text-navy-900">{roleLabel}</p>
               <p className="text-[11px] text-ink-500 truncate max-w-[140px]">{identityLine}</p>
             </div>

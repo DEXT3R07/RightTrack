@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ArrowLeft, AlertTriangle, Layers, FileText, ZoomIn, X } from "lucide-react";
 import { Card, Row } from "../../components/UI.jsx";
-import { StatusPill, SlaBadge, Modal } from "../../components/UI.jsx";
+import { StatusPill, SlaBadge, Modal, Select } from "../../components/UI.jsx";
 import { BearingTracker, SlaGauge } from "../../components/BearingTracker.jsx";
 import CompassDial from "../../components/CompassDial.jsx";
 import AuditDrawer from "../../components/AuditDrawer.jsx";
@@ -155,7 +155,7 @@ export default function ClaimReview({ claim, onBack, onStartReview, onDecision, 
                 {decision === "reject" && (
                   <div className="mb-3">
                     <span className="text-xs font-semibold text-ink-700 mb-1.5 block">Rejection Code</span>
-                    <select value={rejectCode} onChange={(e) => setRejectCode(e.target.value)} className="input">{REJECTION_CODES.map((c) => <option key={c}>{c}</option>)}</select>
+                    <Select value={rejectCode} onChange={(e) => setRejectCode(e.target.value)}>{REJECTION_CODES.map((c) => <option key={c}>{c}</option>)}</Select>
                   </div>
                 )}
                 {decision && (

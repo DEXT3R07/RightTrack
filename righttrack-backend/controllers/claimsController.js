@@ -1,7 +1,6 @@
 const crypto = require("crypto");
 const Claim = require("../models/Claim");
 const User = require("../models/User");
-const { findValidPolicy } = require("./policiesController");
 
 function generateClaimId() {
   return "CLM-" + crypto.randomBytes(4).toString("hex").toUpperCase();
@@ -47,20 +46,7 @@ async function createClaim(req, res) {
       return res.status(400).json({ message: "All claim details are required." });
     }
 
-    const user = await User.findById(req.user.id).select("fullName email");
-
-    const validPolicy = await findValidPolicy(policyId, insurer, category);
-    if (!validPolicy) {
-      return res.status(400).json({
-        message: `We couldn't verify Policy ID "${policyId}" with ${insurer} for ${category}. Double-check the number, or contact ${insurer} if you believe this is an error.`,
-      });
-    }
-    if (validPolicy.policyholderEmail && validPolicy.policyholderEmail !== user.email) {
-      return res.status(400).json({
-        message: `This policy is registered to a different email address. Please use the account that matches your policy, or contact ${insurer}.`,
-      });
-    }
-
+    const user = await User.findById(req.user.id).select("fullName");
     const now = new Date();
     const claimId = generateClaimId();
 
